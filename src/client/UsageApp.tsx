@@ -204,7 +204,6 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={styles.navButton}
                     icon={<IconChevronLeftOutline14 />}
                     aria-label={t('previousMonth')}
                     onClick={() => setCursor(current => shiftMonth(current, -1))}
@@ -213,7 +212,6 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={styles.navButton}
                     icon={<IconChevronRightOutline14 />}
                     aria-label={t('nextMonth')}
                     onClick={() => setCursor(current => shiftMonth(current, 1))}
@@ -266,7 +264,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                   <article key={card.id} className={styles.card} data-subscription={card.id} data-status={card.status}>
                     <div className={styles.cardHead}>
                       <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                      <Pill className={styles.plan}>{card.plan}</Pill>
+                      <Pill active>{card.plan}</Pill>
                     </div>
                     <p className={styles.status}>
                       <StateDot state={statusDot(card.status)} />
