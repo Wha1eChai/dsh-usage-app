@@ -217,26 +217,30 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                     onClick={() => setCursor(current => shiftMonth(current, 1))}
                   />
                 </div>
-                <div className={styles.weekdays}>
-                  {WEEKDAYS.map((label, index) => <span key={`${label}-${index}`} className={styles.weekday}>{label}</span>)}
-                </div>
-                <div className={styles.cells}>
-                  {grid.cells.map(cell => (
-                    <HeatmapDay
-                      key={cell.date}
-                      cell={cell}
-                      selected={selected}
-                      t={t}
-                      onSelect={setSelected}
-                    />
-                  ))}
-                </div>
-                <div className={styles.legend}>
-                  <span className={styles.legendLabel}>{t('heatmapLess')}</span>
-                  {HEAT_LEVELS.map(level => (
-                    <span key={level} className={[styles.swatch, styles[`level${level}`]].join(' ')} />
-                  ))}
-                  <span className={styles.legendLabel}>{t('heatmapMore')}</span>
+                <div className={styles.calendar}>
+                  <div className={styles.weekdays}>
+                    {WEEKDAYS.map((label, index) => <span key={`${label}-${index}`} className={styles.weekday}>{label}</span>)}
+                  </div>
+                  <div className={styles.cells}>
+                    {grid.cells.map(cell => (
+                      <HeatmapDay
+                        key={cell.date}
+                        cell={cell}
+                        selected={selected}
+                        t={t}
+                        onSelect={setSelected}
+                      />
+                    ))}
+                  </div>
+                  <div className={styles.legend}>
+                    <span className={styles.legendLabel}>{t('heatmapLess')}</span>
+                    <span className={styles.legendSwatches}>
+                      {HEAT_LEVELS.map(level => (
+                        <span key={level} className={[styles.swatch, styles[`level${level}`]].join(' ')} />
+                      ))}
+                    </span>
+                    <span className={styles.legendLabel}>{t('heatmapMore')}</span>
+                  </div>
                 </div>
               </section>
               <DayDetailSection day={day} selected={selected} t={t} />
