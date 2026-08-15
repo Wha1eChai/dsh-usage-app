@@ -1,0 +1,99 @@
+.heatmap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.weekdays,
+.cells {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.weekday {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
+.cell {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 3px;
+  background: var(--dsw-alias-bg-layer-2);
+  cursor: pointer;
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-l3);
+  outline-offset: 1px;
+}
+
+.out {
+  opacity: 0.35;
+}
+
+.selected {
+  outline: 2px solid var(--dsw-alias-label-primary);
+  outline-offset: 1px;
+}
+
+.level1 { background: color-mix(in srgb, var(--dsw-alias-label-primary) 20%, var(--dsw-alias-bg-layer-2)); }
+.level2 { background: color-mix(in srgb, var(--dsw-alias-label-primary) 40%, var(--dsw-alias-bg-layer-2)); }
+.level3 { background: color-mix(in srgb, var(--dsw-alias-label-primary) 65%, var(--dsw-alias-bg-layer-2)); }
+.level4 { background: color-mix(in srgb, var(--dsw-alias-label-primary) 90%, var(--dsw-alias-bg-layer-2)); }
+
+.nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nav button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 0.375rem;
+  color: inherit;
+  background: var(--dsw-alias-bg-layer-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cards {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 0.5rem;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.cardMeta {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 0.8125rem;
+}
+
+.bar {
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.fill {
+  height: 100%;
+  background: var(--dsw-alias-label-primary);
+}
