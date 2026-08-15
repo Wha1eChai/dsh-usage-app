@@ -35,9 +35,12 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.1.8
         version: 4.1.8(vitest@4.1.8)
+      '@wha1echai/dsh-app-check':
+        specifier: file:../dsh-app-check
+        version: file:../dsh-app-check
       '@wha1echai/dsh-webpage':
         specifier: file:../dsh-webpage/packages/webpage
-        version: file:../dsh-webpage/packages/webpage(884abf3461b3a3e09c65af142918b0d2)
+        version: file:../dsh-webpage/packages/webpage(b1fb6560ba82b79d2cbd4f7624fa4c43)
       jsdom:
         specifier: 29.1.1
         version: 29.1.1
@@ -1109,6 +1112,11 @@ packages:
   '@vitest/utils@4.1.8':
     resolution: {integrity: sha512-uOJamYALNhfJ6iolExyQM40yIQwDqYnkKtQ5VCiSe17E33H0aQ/u+1GlRuz4LZBk6Mm3sg90G9hEbmEt37C1Zg==}
 
+  '@wha1echai/dsh-app-check@file:../dsh-app-check':
+    resolution: {directory: ../dsh-app-check, type: directory}
+    engines: {node: ^22.19.0 || >=24.0.0}
+    hasBin: true
+
   '@wha1echai/dsh-webpage@file:../dsh-webpage/packages/webpage':
     resolution: {directory: ../dsh-webpage/packages/webpage, type: directory}
     peerDependencies:
@@ -1123,6 +1131,7 @@ packages:
       '@deepseek-ai/dsh-client-ui-slots': 0.1.0-rc.6
       '@deepseek-ai/dsh-client-web-react': 0.1.0-rc.6
       '@deepseek-ai/dsh-invariants': 0.1.0-rc.6
+      '@deepseek-ai/dsh-tools': 0.1.0-rc.6
       react: 18.3.1
       react-dom: 18.3.1
 
@@ -3151,7 +3160,9 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
-  '@wha1echai/dsh-webpage@file:../dsh-webpage/packages/webpage(884abf3461b3a3e09c65af142918b0d2)':
+  '@wha1echai/dsh-app-check@file:../dsh-app-check': {}
+
+  '@wha1echai/dsh-webpage@file:../dsh-webpage/packages/webpage(b1fb6560ba82b79d2cbd4f7624fa4c43)':
     dependencies:
       '@deepseek-ai/cordis': 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
       '@deepseek-ai/dsh-client-locale': 0.1.0-rc.6(1522720d51786f12f12072441c3006d9)
@@ -3164,6 +3175,7 @@ snapshots:
       '@deepseek-ai/dsh-client-ui-slots': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
       '@deepseek-ai/dsh-client-web-react': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
       '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
+      '@deepseek-ai/dsh-tools': 0.1.0-rc.6(f8724372086ccc1457fc84e7becee2e0)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 

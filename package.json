@@ -81,6 +81,7 @@
     "@types/node": "22.20.0",
     "@types/react": "18.3.1",
     "@vitest/coverage-v8": "4.1.8",
+    "@wha1echai/dsh-app-check": "file:../dsh-app-check",
     "@wha1echai/dsh-webpage": "file:../dsh-webpage/packages/webpage",
     "jsdom": "29.1.1",
     "lightningcss": "1.32.0",
