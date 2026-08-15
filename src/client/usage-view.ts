@@ -105,3 +105,12 @@ export function formatTokens(tokens: number): string {
   if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`
   return String(tokens)
 }
+
+/** Shorten a session id for a 300px panel; the full id stays on the row title. */
+export function formatSessionId(id: string): string {
+  const prefixed = /^session-([0-9a-f]{8})/i.exec(id)
+  if (prefixed !== null) return `session-${prefixed[1]}`
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return id.slice(0, 8)
+  if (id.length > 18) return `${id.slice(0, 8)}…`
+  return id
+}

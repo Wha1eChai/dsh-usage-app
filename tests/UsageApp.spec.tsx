@@ -61,7 +61,10 @@ describe('UsageApp', () => {
           date: '2026-08-15',
           totals: { tokens: 10, cacheHitRate: 10 },
           models: [{ model: 'deepseek/v3', tokens: 10 }],
-          sessions: [{ id: 's1', tokens: 10 }],
+          sessions: [
+            { id: 's1', tokens: 10 },
+            { id: 'session-32529ff4-b2d9-4e5e-b833-d525e048de97', tokens: 4 },
+          ],
         })
       }
       return json({
@@ -79,6 +82,13 @@ describe('UsageApp', () => {
     fireEvent.click(screen.getByLabelText('2026-08-15'))
     await waitFor(() => expect(screen.getByText('deepseek/v3')).toBeTruthy())
     expect(screen.getByText('s1')).toBeTruthy()
+    expect(screen.getByText('session-32529ff4')).toBeTruthy()
+    expect(screen.queryByText('session-32529ff4-b2d9-4e5e-b833-d525e048de97')).toBeNull()
+    expect(screen.getByText('Less')).toBeTruthy()
+    expect(screen.getByText('More')).toBeTruthy()
+    fireEvent.mouseEnter(screen.getByLabelText('2026-08-15'))
+    expect(screen.getByRole('tooltip').textContent).toContain('2026-08-15')
+    expect(screen.getByRole('tooltip').textContent).toContain('Tokens')
     expect(document.querySelector('[data-provider="deepseek"][data-status="ok"]')).toBeTruthy()
     expect(document.querySelector('[data-provider="openrouter"][data-status="missing"]')).toBeTruthy()
     expect(screen.getByText(/weekly 20%/)).toBeTruthy()

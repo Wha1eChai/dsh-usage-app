@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   fetchJson,
+  formatSessionId,
   formatTokens,
   heatLevel,
   isDateKey,
@@ -27,6 +28,10 @@ describe('usage-view', () => {
     expect(formatTokens(12)).toBe('12')
     expect(formatTokens(1500)).toBe('1.5k')
     expect(formatTokens(2_000_000)).toBe('2.0M')
+    expect(formatSessionId('session-32529ff4-b2d9-4e5e-b833-d525e048de97')).toBe('session-32529ff4')
+    expect(formatSessionId('32529ff4-b2d9-4e5e-b833-d525e048de97')).toBe('32529ff4')
+    expect(formatSessionId('s1')).toBe('s1')
+    expect(formatSessionId('very-long-session-name')).toBe('very-lon…')
     const grid = monthGrid('2026-08-01', [{
       date: '2026-08-15',
       inputTokens: 10,
