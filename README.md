@@ -1,19 +1,46 @@
 # dsh-usage-app
 
-Local token heatmap and Host-proxied provider balances as a Webpage App (`wha1echai.usage`, `surface: 'panel'`).
+Local token heatmap and Host-proxied provider balances as a Webpage App. Package `@wha1echai/dsh-usage-app`. App ID `wha1echai.usage`, `surface: 'panel'`.
 
-This is a first-party App. It does **not** install community usage plugins. The fold and balance algorithms are adapted from [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats) (MIT); see [NOTICE](NOTICE). Their Loader UI is not included.
+The heatmap is local session tokens folded from live sessions plus persisted session logs. The balances are provider accounts queried by the Host. Credentials are resolved on the Host (`credentials.resolve`) and never reach the browser.
+
+This App does not install community usage plugins. The fold and balance algorithms are adapted from [Ychris12138/dsh-usage-stats](https://github.com/Ychris12138/dsh-usage-stats) (MIT); see [NOTICE](NOTICE). Their Loader UI was not copied.
 
 ## What it does
 
-- `/apps/wha1echai.usage` — month heatmap, day detail (models + sessions), four provider balance cards, OpenCode Go + Z.ai subscription cards
-- Host routes (loopback GET only): `/api/wha1echai-usage/summary`, `/day?date=`, `/balances`, `/subscriptions`
-- Usage is folded from live `sessions.list()` plus `sessionPersistence` logs (`assistant/message.usage` / usage chunks). Incremental cache: `$DSH_HOME/storages/wha1echai-usage-cache.json`
-- Keys stay on the Host (`credentials.resolve`). The browser only calls the local HTTP routes.
+- `/apps/wha1echai.usage` — month heatmap, day detail (models + sessions), four provider balance cards (DeepSeek, OpenRouter, Moonshot, Z.ai), and two subscription cards (OpenCode Go, Z.ai)
+- Host routes (loopback GET only): `/api/wha1echai-usage/summary`, `/api/wha1echai-usage/day?date=`, `/api/wha1echai-usage/balances`, `/api/wha1echai-usage/subscriptions`
+- Usage is folded from live `sessions.list()` plus `sessionPersistence` logs (`assistant/message` usage and `assistant/chunk` usage chunks)
+- Incremental cache: `$DSH_HOME/storages/wha1echai-usage-cache.json` (`DSH_HOME` defaults to `~/.dsh`)
+- The pack inserts only this plugin
 
-The heatmap is local session tokens. Balances are Host-proxied provider accounts.
+The browser only calls the local HTTP routes.
 
 ## Requirements
 
 - DSH `0.1.0-rc.6`
-- `@wha1echai/dsh-webpage` `0.1.0` installed first
+- Node `^22.19.0 || >=24.0.0`
+- pnpm `11.7.0`
+- `@wha1echai/dsh-webpage` `0.1.0` present in the profile first
+
+## Install
+
+Nothing in this family is published to npm yet. Pack this App after a build, then add the tarball to a web profile that already has `@wha1echai/dsh-webpage`:
+
+```powershell
+dsh plugin --profile web add .\wha1echai-dsh-webpage-0.1.0.tgz
+dsh plugin --profile web add .\wha1echai-dsh-usage-app-0.1.0.tgz
+```
+
+## Verify
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm verify
+```
+
+On machines where nested `pnpm run` resolves pnpm `11.0.9` against `packageManager: pnpm@11.7.0`, invoke the scripts directly: `node scripts/check.mjs --lint`, `node scripts/check.mjs --pack`, and `node node_modules/vitest/vitest.mjs run --coverage`.
+
+## Family
+
+The platform repository [dsh-webpage](https://github.com/Wha1eChai/dsh-webpage) holds the kernel, the authoring contract, and the docs. Apps live in their own repositories on purpose.
