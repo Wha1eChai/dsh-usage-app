@@ -28,6 +28,8 @@ export default {
     'package/lib/types/client/locales.d.ts',
     'package/lib/types/client/usage-view.d.ts',
     'package/lib/types/client/UsageApp.d.ts',
+    'package/lib/types/client/UsageAccountPane.d.ts',
+    'package/lib/types/client/UsagePeriodHero.d.ts',
     'package/lib/types/client/UsageHeaderAction.d.ts',
   ],
   patchMustInclude: ["name: '@wha1echai/dsh-usage-app'"],

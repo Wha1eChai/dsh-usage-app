@@ -23,7 +23,7 @@ The heatmap is local session tokens. Balances and subscriptions are Host-proxied
 - `src/fold.ts` — token fold (do not change the math)
 - `src/collect.ts` — live sessions + persistence logs; titles via `sessionQuery` when present
 - `src/balances.ts` / `src/subscriptions.ts` / `src/http.ts` — provider discovery, OpenCode Go + Z.ai windows, routes
-- `src/client/` — `UsageApp`, header action, locales, view helpers
+- `src/client/` — `UsageApp`, `UsagePeriodHero`, `UsageAccountPane`, header action, locales, view helpers
 - `tests/` — Host, fold, and panel tests
 - `dsh-app-check.config.mjs` — `expectedClientInject` and packed allowlist
 - `docs/research/` — local dated capability notes (gitignored); treat as stale if they disagree with source
@@ -51,4 +51,4 @@ Do not commit machine-local profile paths. The pack `files` allowlist is the pub
 
 ## Shipped panel
 
-Hero (today / this month / all-time + four buckets + cache hit), provider-filtered heatmap, day detail, session open, balance breakdown, localized subscription windows, manual refresh plus a five-minute interval, hidden missing/unsupported cards.
+Switchable ledger period (today / month / all) with one hero number and matching buckets; provider-filtered heatmap; day detail; session open; one visible balance and one subscription at a time (pills when there are more); manual refresh plus a five-minute interval; hidden missing/unsupported cards.

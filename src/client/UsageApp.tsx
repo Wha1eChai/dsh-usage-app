@@ -7,23 +7,18 @@ import {
   IconRefreshOutline16,
   IconWarningOutline16,
   Pill,
-  StateDot,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WebpageAppSlotProps } from '@wha1echai/dsh-webpage/client'
 import { AppEmpty, AppField, AppFields, AppList, AppPage, AppRow } from '@wha1echai/dsh-webpage/ui'
-import type { BalanceCard } from '../balances.js'
 import type { DayDetail } from '../fold.js'
-import type { SubscriptionWindow } from '../subscriptions.js'
 import type { UsageAppOwner } from '../index.js'
 import type { HeatmapCell, UsagePanelData } from './usage-view.js'
 import {
   dateFromPath,
   filterDaysByProvider,
   formatBucketSummary,
-  formatResetAt,
   formatSessionId,
   formatTokens,
   loadDay,
@@ -35,8 +30,9 @@ import {
   shiftMonth,
   todayKey,
   tokensByProvider,
-  visibleAccountCards,
 } from './usage-view.js'
+import { UsageAccountPane } from './UsageAccountPane.js'
+import { UsagePeriodHero, type LedgerPeriod } from './UsagePeriodHero.js'
 import styles from './UsageApp.module.css'
 
 interface UsageAppInject {
@@ -52,12 +48,6 @@ export type UsageAppProps =
 
 const WEEKDAY_KEYS = ['weekday0', 'weekday1', 'weekday2', 'weekday3', 'weekday4', 'weekday5', 'weekday6'] as const
 const HEAT_LEVELS = [0, 1, 2, 3, 4] as const
-const WINDOW_KEYS = {
-  session: 'windowSession',
-  weekly: 'windowWeekly',
-  monthly: 'windowMonthly',
-  billing: 'windowBilling',
-} as const
 const REFRESH_MS = 5 * 60 * 1000
 
 function bucketLabels(t: UsageAppProps['t']): {
@@ -73,20 +63,8 @@ function formatCacheHit(rate: number | null | undefined): string {
   return rate === null || rate === undefined ? '—' : `${rate}%`
 }
 
-function statusLabel(status: string, t: UsageAppProps['t']): string {
-  return status === 'error' ? t('error') : t('remaining')
-}
-
-function statusDot(status: string): StateDotState {
-  return status === 'error' ? 'error' : 'done'
-}
-
 function cellTooltip(cell: HeatmapCell, t: UsageAppProps['t']): string {
   return `${cell.date} · ${t('tokens')} ${formatTokens(cell.tokens)}`
-}
-
-function windowLabel(kind: SubscriptionWindow['kind'], t: UsageAppProps['t']): string {
-  return t(WINDOW_KEYS[kind])
 }
 
 function EmptyFace({ warning, children }: { warning?: boolean; children: string }) {
@@ -189,23 +167,6 @@ function DayDetailSection({ day, selected, t, openSession }: {
   )
 }
 
-function BalanceMeta({ card, t }: { card: BalanceCard; t: UsageAppProps['t'] }) {
-  if (card.status !== 'ok') return null
-  const lines: { key: string; label: string; value: number }[] = []
-  if (card.granted !== undefined) lines.push({ key: 'granted', label: t('granted'), value: card.granted })
-  if (card.toppedUp !== undefined) lines.push({ key: 'toppedUp', label: t('toppedUp'), value: card.toppedUp })
-  if (card.used !== undefined) lines.push({ key: 'used', label: t('used'), value: card.used })
-  if (card.limit !== undefined) lines.push({ key: 'limit', label: t('limit'), value: card.limit })
-  if (lines.length === 0) return null
-  return (
-    <>
-      {lines.map(line => (
-        <p key={line.key} className={styles.cardMeta}>{line.label} {line.value}</p>
-      ))}
-    </>
-  )
-}
-
 /** Local ledger heatmap plus Host-proxied provider cards. */
 export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: UsageAppProps) {
   const owner: UsageAppOwner = Object.freeze({ appPath })
@@ -216,6 +177,7 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
   const [day, setDay] = useState<DayDetail | undefined>()
   const [cursor, setCursor] = useState(selected)
   const [provider, setProvider] = useState('all')
+  const [period, setPeriod] = useState<LedgerPeriod>('today')
   const [error, setError] = useState<string | undefined>()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -292,8 +254,6 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
   const grid = useMemo(() => monthGrid(cursor, filteredDays), [cursor, filteredDays])
   const totals = useMemo(() => periodTotals(filteredDays), [filteredDays])
   const providers = useMemo(() => tokensByProvider(days), [days])
-  const balances = useMemo(() => visibleAccountCards(panel?.balances ?? []), [panel])
-  const subscriptions = useMemo(() => visibleAccountCards(panel?.subscriptions ?? []), [panel])
 
   return (
     <article data-route={`/${selected}`}>
@@ -314,39 +274,7 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
                   onClick={refresh}
                 />
               </div>
-              <div className={styles.hero}>
-                <div className={styles.periods}>
-                  <AppFields>
-                    <AppField
-                      field="today"
-                      label={t('today')}
-                      value={formatTokens(totals.today.tokens)}
-                      valueClassName={styles.heroValue}
-                    />
-                    <AppField
-                      field="month"
-                      label={t('thisMonth')}
-                      value={formatTokens(totals.month.tokens)}
-                      valueClassName={styles.heroValue}
-                    />
-                    <AppField
-                      field="all"
-                      label={t('allTime')}
-                      value={formatTokens(totals.all.tokens)}
-                      valueClassName={styles.heroValue}
-                    />
-                  </AppFields>
-                </div>
-                <div className={styles.buckets}>
-                  <AppFields>
-                    <AppField field="input" label={t('input')} value={formatTokens(totals.all.inputTokens)} />
-                    <AppField field="output" label={t('output')} value={formatTokens(totals.all.outputTokens)} />
-                    <AppField field="cache-read" label={t('cacheRead')} value={formatTokens(totals.all.cacheReadTokens)} />
-                    <AppField field="cache-write" label={t('cacheWrite')} value={formatTokens(totals.all.cacheWriteTokens)} />
-                    <AppField field="cache" label={t('cacheHit')} value={formatCacheHit(totals.all.cacheHitRate)} />
-                  </AppFields>
-                </div>
-              </div>
+              <UsagePeriodHero totals={totals} period={period} onPeriod={setPeriod} t={t} />
               <div className={styles.providers} data-provider-filter role="group" aria-label={t('providers')}>
                 <Pill active={provider === 'all'} onClick={() => setProvider('all')}>{t('allProviders')}</Pill>
                 {providers.map(item => (
@@ -404,57 +332,11 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
                 </div>
               </section>
               <DayDetailSection day={day} selected={selected} t={t} openSession={openSession} />
-              {balances.length === 0
-                ? null
-                : (
-                  <section className={styles.cards} aria-label={t('balances')}>
-                    <h2 className={styles.heading}>{t('balances')}</h2>
-                    {balances.map(card => (
-                      <article key={card.id} className={styles.card} data-provider={card.id} data-status={card.status}>
-                        <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                        <p className={styles.status}>
-                          <StateDot state={statusDot(card.status)} />
-                          <span>
-                            {statusLabel(card.status, t)}
-                            {card.status === 'ok' && card.remaining !== undefined
-                              ? ` ${card.remaining}${card.currency === undefined ? '' : ` ${card.currency}`}`
-                              : ''}
-                            {card.status !== 'ok' && card.message !== undefined ? ` · ${card.message}` : ''}
-                          </span>
-                        </p>
-                        <BalanceMeta card={card} t={t} />
-                      </article>
-                    ))}
-                  </section>
-                )}
-              {subscriptions.length === 0
-                ? null
-                : (
-                  <section className={styles.cards} aria-label={t('subscriptions')}>
-                    <h2 className={styles.heading}>{t('subscriptions')}</h2>
-                    {subscriptions.map(card => (
-                      <article key={card.id} className={styles.card} data-subscription={card.id} data-status={card.status}>
-                        <div className={styles.cardHead}>
-                          <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                          <Pill active className={styles.pillOnCard}>{card.plan}</Pill>
-                        </div>
-                        <p className={styles.status}>
-                          <StateDot state={statusDot(card.status)} />
-                          <span>{statusLabel(card.status, t)}</span>
-                        </p>
-                        {card.windows.map(window => (
-                          <div key={window.kind} className={styles.window}>
-                            <p className={styles.cardMeta}>{windowLabel(window.kind, t)} {window.usedPercent}%</p>
-                            {window.resetsAt !== undefined
-                              ? <p className={styles.cardMeta}>{t('resetsAt')} {formatResetAt(window.resetsAt)}</p>
-                              : null}
-                            <div className={styles.bar}><div className={styles.fill} style={{ width: `${window.usedPercent}%` }} /></div>
-                          </div>
-                        ))}
-                      </article>
-                    ))}
-                  </section>
-                )}
+              <UsageAccountPane
+                balances={panel.balances}
+                subscriptions={panel.subscriptions}
+                t={t}
+              />
             </>
           )
           : null}
