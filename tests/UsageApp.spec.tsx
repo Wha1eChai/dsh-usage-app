@@ -139,9 +139,11 @@ describe('UsageApp', () => {
     expect(screen.getByRole('tooltip').textContent).toContain('2026-08-15')
     expect(screen.getByRole('tooltip').textContent).toContain('Tokens')
     expect(document.querySelector('[data-provider="deepseek"][data-status="ok"]')).toBeTruthy()
-    expect(document.querySelector('[data-provider="openrouter"][data-status="missing"]')).toBeTruthy()
-    expect(document.querySelector('[data-provider="kimi"][data-status="unsupported"]')).toBeTruthy()
-    expect(screen.getByText('No balance API')).toBeTruthy()
+    expect(document.querySelector('[data-provider="moonshot"][data-status="error"]')).toBeTruthy()
+    expect(document.querySelector('[data-provider="openrouter"]')).toBeNull()
+    expect(document.querySelector('[data-provider="kimi"]')).toBeNull()
+    expect(screen.queryByText('No balance API')).toBeNull()
+    expect(screen.queryByText('No credential')).toBeNull()
     expect(screen.getByText(/Granted 10/)).toBeTruthy()
     expect(screen.getByText(/Weekly 20%/)).toBeTruthy()
     expect(screen.getByText(new RegExp(formatResetAt(RESET_AT)))).toBeTruthy()
@@ -203,7 +205,7 @@ describe('UsageApp', () => {
           subscriptions: [{
             id: 'zai',
             displayName: 'Z.ai',
-            status: 'missing',
+            status: 'ok',
             plan: 'GLM',
             windows: [
               { kind: 'session', usedPercent: 10, remainingPercent: 90 },

@@ -22,6 +22,7 @@ import {
   todayKey,
   tokensByDate,
   tokensByProvider,
+  visibleAccountCards,
 } from '../src/client/usage-view.js'
 
 function modelRow(model: string, buckets: TokenBuckets): ModelRow {
@@ -166,5 +167,14 @@ describe('usage-view', () => {
     const local = new Date(2026, 7, 16, 15, 4, 0)
     expect(formatResetAt(local.toISOString())).toBe('2026-08-16 15:04')
     expect(formatResetAt('not-a-date')).toBe('not-a-date')
+  })
+
+  it('hides missing and unsupported account cards', () => {
+    expect(visibleAccountCards([
+      { status: 'ok' },
+      { status: 'error' },
+      { status: 'missing' },
+      { status: 'unsupported' },
+    ]).map(card => card.status)).toEqual(['ok', 'error'])
   })
 })

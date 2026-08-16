@@ -16,6 +16,11 @@ export interface UsagePanelData {
   readonly subscriptions: readonly SubscriptionCard[]
 }
 
+/** Cards with no credential or no public balance API stay off the panel. */
+export function visibleAccountCards<T extends { readonly status: string }>(cards: readonly T[]): T[] {
+  return cards.filter(card => card.status === 'ok' || card.status === 'error')
+}
+
 export interface MonthGrid {
   readonly year: number
   readonly month: number

@@ -35,6 +35,7 @@ import {
   shiftMonth,
   todayKey,
   tokensByProvider,
+  visibleAccountCards,
 } from './usage-view.js'
 import styles from './UsageApp.module.css'
 
@@ -73,16 +74,11 @@ function formatCacheHit(rate: number | null | undefined): string {
 }
 
 function statusLabel(status: string, t: UsageAppProps['t']): string {
-  if (status === 'missing') return t('missing')
-  if (status === 'error') return t('error')
-  if (status === 'unsupported') return t('unsupported')
-  return t('remaining')
+  return status === 'error' ? t('error') : t('remaining')
 }
 
 function statusDot(status: string): StateDotState {
-  if (status === 'error') return 'error'
-  if (status === 'missing' || status === 'unsupported') return 'warning'
-  return 'done'
+  return status === 'error' ? 'error' : 'done'
 }
 
 function cellTooltip(cell: HeatmapCell, t: UsageAppProps['t']): string {
@@ -296,6 +292,8 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
   const grid = useMemo(() => monthGrid(cursor, filteredDays), [cursor, filteredDays])
   const totals = useMemo(() => periodTotals(filteredDays), [filteredDays])
   const providers = useMemo(() => tokensByProvider(days), [days])
+  const balances = useMemo(() => visibleAccountCards(panel?.balances ?? []), [panel])
+  const subscriptions = useMemo(() => visibleAccountCards(panel?.subscriptions ?? []), [panel])
 
   return (
     <article data-route={`/${selected}`}>
@@ -406,49 +404,57 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
                 </div>
               </section>
               <DayDetailSection day={day} selected={selected} t={t} openSession={openSession} />
-              <section className={styles.cards} aria-label={t('balances')}>
-                <h2 className={styles.heading}>{t('balances')}</h2>
-                {panel.balances.map(card => (
-                  <article key={card.id} className={styles.card} data-provider={card.id} data-status={card.status}>
-                    <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                    <p className={styles.status}>
-                      <StateDot state={statusDot(card.status)} />
-                      <span>
-                        {statusLabel(card.status, t)}
-                        {card.status === 'ok' && card.remaining !== undefined
-                          ? ` ${card.remaining}${card.currency === undefined ? '' : ` ${card.currency}`}`
-                          : ''}
-                        {card.status !== 'ok' && card.message !== undefined ? ` · ${card.message}` : ''}
-                      </span>
-                    </p>
-                    <BalanceMeta card={card} t={t} />
-                  </article>
-                ))}
-              </section>
-              <section className={styles.cards} aria-label={t('subscriptions')}>
-                <h2 className={styles.heading}>{t('subscriptions')}</h2>
-                {panel.subscriptions.map(card => (
-                  <article key={card.id} className={styles.card} data-subscription={card.id} data-status={card.status}>
-                    <div className={styles.cardHead}>
-                      <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                      <Pill active className={styles.pillOnCard}>{card.plan}</Pill>
-                    </div>
-                    <p className={styles.status}>
-                      <StateDot state={statusDot(card.status)} />
-                      <span>{statusLabel(card.status, t)}</span>
-                    </p>
-                    {card.windows.map(window => (
-                      <div key={window.kind} className={styles.window}>
-                        <p className={styles.cardMeta}>{windowLabel(window.kind, t)} {window.usedPercent}%</p>
-                        {window.resetsAt !== undefined
-                          ? <p className={styles.cardMeta}>{t('resetsAt')} {formatResetAt(window.resetsAt)}</p>
-                          : null}
-                        <div className={styles.bar}><div className={styles.fill} style={{ width: `${window.usedPercent}%` }} /></div>
-                      </div>
+              {balances.length === 0
+                ? null
+                : (
+                  <section className={styles.cards} aria-label={t('balances')}>
+                    <h2 className={styles.heading}>{t('balances')}</h2>
+                    {balances.map(card => (
+                      <article key={card.id} className={styles.card} data-provider={card.id} data-status={card.status}>
+                        <h3 className={styles.cardTitle}>{card.displayName}</h3>
+                        <p className={styles.status}>
+                          <StateDot state={statusDot(card.status)} />
+                          <span>
+                            {statusLabel(card.status, t)}
+                            {card.status === 'ok' && card.remaining !== undefined
+                              ? ` ${card.remaining}${card.currency === undefined ? '' : ` ${card.currency}`}`
+                              : ''}
+                            {card.status !== 'ok' && card.message !== undefined ? ` · ${card.message}` : ''}
+                          </span>
+                        </p>
+                        <BalanceMeta card={card} t={t} />
+                      </article>
                     ))}
-                  </article>
-                ))}
-              </section>
+                  </section>
+                )}
+              {subscriptions.length === 0
+                ? null
+                : (
+                  <section className={styles.cards} aria-label={t('subscriptions')}>
+                    <h2 className={styles.heading}>{t('subscriptions')}</h2>
+                    {subscriptions.map(card => (
+                      <article key={card.id} className={styles.card} data-subscription={card.id} data-status={card.status}>
+                        <div className={styles.cardHead}>
+                          <h3 className={styles.cardTitle}>{card.displayName}</h3>
+                          <Pill active className={styles.pillOnCard}>{card.plan}</Pill>
+                        </div>
+                        <p className={styles.status}>
+                          <StateDot state={statusDot(card.status)} />
+                          <span>{statusLabel(card.status, t)}</span>
+                        </p>
+                        {card.windows.map(window => (
+                          <div key={window.kind} className={styles.window}>
+                            <p className={styles.cardMeta}>{windowLabel(window.kind, t)} {window.usedPercent}%</p>
+                            {window.resetsAt !== undefined
+                              ? <p className={styles.cardMeta}>{t('resetsAt')} {formatResetAt(window.resetsAt)}</p>
+                              : null}
+                            <div className={styles.bar}><div className={styles.fill} style={{ width: `${window.usedPercent}%` }} /></div>
+                          </div>
+                        ))}
+                      </article>
+                    ))}
+                  </section>
+                )}
             </>
           )
           : null}
