@@ -26,7 +26,7 @@ The heatmap is local session tokens. Balances and subscriptions are Host-proxied
 - `src/client/` — `UsageApp`, header action, locales, view helpers
 - `tests/` — Host, fold, and panel tests
 - `dsh-app-check.config.mjs` — `expectedClientInject` and packed allowlist
-- `docs/research/` — dated capability notes; treat as stale if they disagree with source
+- `docs/research/` — local dated capability notes (gitignored); treat as stale if they disagree with source
 
 Client inject is `['pages', 'slots', 'locale', 'sessions']`. `dsh.client.inject` also lists `@wha1echai/dsh-webpage`, `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-runtime`, `@deepseek-ai/dsh-client-ui-conversation`.
 
