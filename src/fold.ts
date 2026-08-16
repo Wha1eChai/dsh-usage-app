@@ -63,6 +63,7 @@ export interface UsageRender {
 
 export interface SessionDayRow extends TokenBuckets {
   readonly id: string
+  readonly title?: string
   readonly tokens: number
   readonly models: readonly ModelRow[]
 }

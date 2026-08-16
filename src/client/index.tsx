@@ -1,8 +1,10 @@
 import { lazy } from 'react'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { AppDescriptor } from '@wha1echai/dsh-webpage/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 
+import { UsageHeaderAction } from './UsageHeaderAction.js'
 import { en, zh } from './locales.js'
 
 export const UsageAppBody = lazy(async () => {
@@ -23,7 +25,7 @@ const LOCALE_NAMESPACE = 'usage'
 const APP_ID = 'wha1echai.usage'
 
 export const name = '@wha1echai/dsh-usage-app'
-export const inject = ['pages', 'slots', 'locale']
+export const inject = ['pages', 'slots', 'locale', 'sessions']
 
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
@@ -36,9 +38,22 @@ export function apply(ctx: ClientContext): void {
       children: {
         'wha1echai.usage.actions': { kind: 'list', scope: 'root' },
       },
+      inject: () => ({
+        openSession: (id: string) => { ctx.sessions.open(id as SessionId) },
+      }),
     }, UsageAppBody))
+    const unregisterHeader = ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+      name: 'conversation.session.header.actions',
+      id: 'wha1echai.usage',
+      order: 30,
+      locale: LOCALE_NAMESPACE,
+      inject: () => ({
+        openUsage: () => ctx.pages.open(APP_ID, '/'),
+      }),
+    }, UsageHeaderAction))
 
     return () => {
+      unregisterHeader()
       unregisterApp()
       unregisterPage()
       unregisterLocale()
@@ -47,3 +62,4 @@ export function apply(ctx: ClientContext): void {
 }
 
 export type { UsageAppProps } from './UsageApp.js'
+export type { UsageHeaderActionProps } from './UsageHeaderAction.js'

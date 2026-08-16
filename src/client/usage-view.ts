@@ -1,5 +1,6 @@
 import type { BalanceCard } from '../balances.js'
-import type { DayDetail, DayRow, UsageRender } from '../fold.js'
+import { cacheHitRate, totalTokens, zeroBuckets } from '../fold.js'
+import type { DayDetail, DayRow, TokenBuckets, UsageRender } from '../fold.js'
 import type { SubscriptionCard } from '../subscriptions.js'
 
 export interface HeatmapCell {
@@ -106,11 +107,134 @@ export function formatTokens(tokens: number): string {
   return String(tokens)
 }
 
-/** Shorten a session id for a 300px panel; the full id stays on the row title. */
+/** Shorten a session id for the 32rem panel; the full id stays on the row title. */
 export function formatSessionId(id: string): string {
   const prefixed = /^session-([0-9a-f]{8})/i.exec(id)
   if (prefixed !== null) return `session-${prefixed[1]}`
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return id.slice(0, 8)
   if (id.length > 18) return `${id.slice(0, 8)}…`
   return id
+}
+
+export interface PeriodTotals {
+  readonly today: TokenBuckets & { readonly tokens: number; readonly cacheHitRate: number | null }
+  readonly month: TokenBuckets & { readonly tokens: number; readonly cacheHitRate: number | null }
+  readonly all: TokenBuckets & { readonly tokens: number; readonly cacheHitRate: number | null }
+}
+
+export interface ProviderTotal {
+  readonly provider: string
+  readonly tokens: number
+}
+
+function isCalendarDate(value: string): boolean {
+  if (!DATE.test(value)) return false
+  const year = Number(value.slice(0, 4))
+  const month = Number(value.slice(5, 7))
+  const day = Number(value.slice(8, 10))
+  const parsed = new Date(year, month - 1, day)
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day
+}
+
+function addBuckets(target: TokenBuckets, source: TokenBuckets): void {
+  target.inputTokens += source.inputTokens
+  target.outputTokens += source.outputTokens
+  target.cacheReadTokens += source.cacheReadTokens
+  target.cacheWriteTokens += source.cacheWriteTokens
+}
+
+function withTotals(buckets: TokenBuckets): TokenBuckets & { tokens: number; cacheHitRate: number | null } {
+  return { ...buckets, tokens: totalTokens(buckets), cacheHitRate: cacheHitRate(buckets) }
+}
+
+/** `/` and `/today` → undefined (caller uses today). `/YYYY-MM-DD` → that date. Anything else → null (invalid). */
+export function dateFromPath(appPath: string): string | undefined | null {
+  if (appPath === '/' || appPath === '/today') return undefined
+  if (appPath.startsWith('/') && isCalendarDate(appPath.slice(1))) return appPath.slice(1)
+  return null
+}
+
+/** Always `/YYYY-MM-DD`. */
+export function pathFromDate(date: string): string {
+  return `/${date}`
+}
+
+/** Local calendar YYYY-MM-DD. Accept optional `now` for tests. */
+export function todayKey(now?: number): string {
+  const date = now === undefined ? new Date() : new Date(now)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+export function monthPrefix(date: string): string {
+  return date.slice(0, 7)
+}
+
+/** Sum days for today / current month / all. `now` optional. */
+export function periodTotals(days: readonly DayRow[], now?: number): PeriodTotals {
+  const today = todayKey(now)
+  const month = monthPrefix(today)
+  const todayBuckets = zeroBuckets()
+  const monthBuckets = zeroBuckets()
+  const allBuckets = zeroBuckets()
+  for (const day of days) {
+    addBuckets(allBuckets, day)
+    if (day.date.startsWith(month)) addBuckets(monthBuckets, day)
+    if (day.date === today) addBuckets(todayBuckets, day)
+  }
+  return {
+    today: withTotals(todayBuckets),
+    month: withTotals(monthBuckets),
+    all: withTotals(allBuckets),
+  }
+}
+
+/** First path segment of `provider/model`. `unknown` if missing. */
+export function providerKey(model: string): string {
+  const slash = model.indexOf('/')
+  if (slash <= 0) return 'unknown'
+  return model.slice(0, slash)
+}
+
+export function tokensByProvider(days: readonly DayRow[]): ProviderTotal[] {
+  const totals = new Map<string, number>()
+  for (const day of days) {
+    for (const model of day.models) {
+      const provider = providerKey(model.model)
+      totals.set(provider, (totals.get(provider) ?? 0) + model.tokens)
+    }
+  }
+  return [...totals.entries()]
+    .map(([provider, tokens]) => ({ provider, tokens }))
+    .sort((left, right) => right.tokens - left.tokens)
+}
+
+export function filterDaysByProvider(days: readonly DayRow[], provider: string): DayRow[] {
+  if (provider === 'all') return days as DayRow[]
+  const filtered: DayRow[] = []
+  for (const day of days) {
+    const models = day.models.filter(model => providerKey(model.model) === provider)
+    if (models.length === 0) continue
+    const buckets = zeroBuckets()
+    for (const model of models) addBuckets(buckets, model)
+    filtered.push({ date: day.date, ...withTotals(buckets), models })
+  }
+  return filtered
+}
+
+export function formatBucketSummary(
+  buckets: TokenBuckets,
+  labels: { input: string; output: string; cacheRead: string; cacheWrite: string },
+): string {
+  return `${labels.input} ${formatTokens(buckets.inputTokens)} · ${labels.output} ${formatTokens(buckets.outputTokens)} · ${labels.cacheRead} ${formatTokens(buckets.cacheReadTokens)} · ${labels.cacheWrite} ${formatTokens(buckets.cacheWriteTokens)}`
+}
+
+/** Local `YYYY-MM-DD HH:mm` from ISO; if invalid, return the original string. */
+export function formatResetAt(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day} ${hour}:${minute}`
 }

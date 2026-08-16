@@ -1,8 +1,10 @@
+export type BalanceCardStatus = 'ok' | 'missing' | 'error' | 'unsupported'
+
 /** Normalized balance card for one provider. */
 export interface BalanceCard {
   readonly id: string
   readonly displayName: string
-  readonly status: 'ok' | 'missing' | 'error'
+  readonly status: BalanceCardStatus
   readonly currency?: string
   readonly remaining?: number
   readonly granted?: number
@@ -17,7 +19,7 @@ export interface ProviderSpec {
   readonly displayName: string
   readonly apiKeyEnv: string
   readonly baseURL: string
-  readonly scheme: BalanceSchemeId
+  readonly scheme?: BalanceSchemeId
 }
 
 export type BalanceSchemeId = 'deepseek' | 'openrouter' | 'moonshot' | 'zai'
@@ -34,6 +36,16 @@ export interface ParsedBalance {
 
 export interface CredentialsFace {
   resolve(ref: string): Promise<{ value: string } | undefined>
+}
+
+export interface LlmFace {
+  listProviders?(): ReadonlyArray<{ id: string; name: string }>
+  listConfigurableProviders?(): ReadonlyArray<{
+    provider: string
+    displayName: string
+    settingsNs: string
+    settingsPath: readonly string[]
+  }>
 }
 
 export interface BalanceQueryDeps {
@@ -115,6 +127,17 @@ export const DEFAULT_PROVIDERS: readonly ProviderSpec[] = Object.freeze([
   { id: 'zai', displayName: 'Z.ai', apiKeyEnv: 'ZAI_API_KEY', baseURL: 'https://api.z.ai', scheme: 'zai' },
 ])
 
+const SCHEME_ALIAS: Record<string, BalanceSchemeId> = {
+  deepseek: 'deepseek',
+  'deepseek-official': 'deepseek',
+  openrouter: 'openrouter',
+  moonshot: 'moonshot',
+  kimi: 'moonshot',
+  zai: 'zai',
+  'z.ai': 'zai',
+  glm: 'zai',
+}
+
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -188,6 +211,9 @@ export async function queryBalances(
   deps: BalanceQueryDeps = {},
 ): Promise<BalanceCard[]> {
   return Promise.all(providers.map(async provider => {
+    if (provider.scheme === undefined) {
+      return { id: provider.id, displayName: provider.displayName, status: 'unsupported' as const }
+    }
     const apiKey = await resolveKey(credentials, provider.apiKeyEnv)
     if (apiKey === '') {
       return { id: provider.id, displayName: provider.displayName, status: 'missing' as const, message: provider.apiKeyEnv }
@@ -205,8 +231,7 @@ export async function queryBalances(
   }))
 }
 
-/** Overlay DeepSeek env/base URL from optional harness settings. */
-export function providersFromSettings(settings: { get?(key: string): unknown } | undefined): ProviderSpec[] {
+function overlayDeepseek(settings: { get?(key: string): unknown } | undefined): ProviderSpec[] {
   const deepseek = settings?.get?.('llm-deepseek')
   const record = asRecord(deepseek)
   return DEFAULT_PROVIDERS.map(provider => {
@@ -217,4 +242,88 @@ export function providersFromSettings(settings: { get?(key: string): unknown } |
       baseURL: typeof record.baseURL === 'string' ? record.baseURL : provider.baseURL,
     }
   })
+}
+
+function profileAt(
+  settings: { get?(key: string): unknown } | undefined,
+  ns: string,
+  path: readonly string[],
+): Record<string, unknown> | undefined {
+  try {
+    let current: unknown = settings?.get?.(ns)
+    for (const segment of path) {
+      const record = asRecord(current)
+      if (record === undefined) return undefined
+      current = record[segment]
+    }
+    return asRecord(current)
+  } catch {
+    return undefined
+  }
+}
+
+function listed<T>(read: () => ReadonlyArray<T> | undefined): T[] {
+  try {
+    const value = read()
+    return Array.isArray(value) ? [...value] : []
+  } catch {
+    return []
+  }
+}
+
+/** Discover providers from settings plus an optional Host llm directory. */
+export function providersFromHost(
+  settings: { get?(key: string): unknown } | undefined,
+  llm?: LlmFace,
+): ProviderSpec[] {
+  const byId = new Map(overlayDeepseek(settings).map(provider => [provider.id, provider]))
+  const extras: ProviderSpec[] = []
+  const seen = new Set<string>()
+
+  const apply = (routeId: string, displayName: string | undefined, profile: Record<string, unknown> | undefined): void => {
+    if (routeId === '' || seen.has(routeId)) return
+    seen.add(routeId)
+    const scheme = SCHEME_ALIAS[routeId]
+    const apiKeyEnv = typeof profile?.apiKeyEnv === 'string' ? profile.apiKeyEnv : undefined
+    const baseURL = typeof profile?.baseURL === 'string' ? profile.baseURL : undefined
+    if (scheme !== undefined) {
+      const existing = byId.get(scheme)
+      if (existing !== undefined) {
+        byId.set(scheme, {
+          ...existing,
+          ...(displayName !== undefined && displayName !== '' ? { displayName } : {}),
+          ...(apiKeyEnv !== undefined ? { apiKeyEnv } : {}),
+          ...(baseURL !== undefined ? { baseURL } : {}),
+        })
+        return
+      }
+    }
+    extras.push({
+      id: routeId,
+      displayName: displayName !== undefined && displayName !== '' ? displayName : routeId,
+      apiKeyEnv: apiKeyEnv ?? '',
+      baseURL: baseURL ?? '',
+    })
+  }
+
+  if (llm !== undefined) {
+    for (const entry of listed(() => llm.listConfigurableProviders?.())) {
+      if (typeof entry?.provider !== 'string') continue
+      const profile = typeof entry.settingsNs === 'string'
+        ? profileAt(settings, entry.settingsNs, Array.isArray(entry.settingsPath) ? entry.settingsPath : [])
+        : undefined
+      apply(entry.provider, typeof entry.displayName === 'string' ? entry.displayName : undefined, profile)
+    }
+    for (const entry of listed(() => llm.listProviders?.())) {
+      if (typeof entry?.id !== 'string') continue
+      apply(entry.id, typeof entry.name === 'string' ? entry.name : undefined, undefined)
+    }
+  }
+
+  return [...byId.values(), ...extras]
+}
+
+/** Overlay DeepSeek env/base URL from optional harness settings. */
+export function providersFromSettings(settings: { get?(key: string): unknown } | undefined): ProviderSpec[] {
+  return providersFromHost(settings)
 }

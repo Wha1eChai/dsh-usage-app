@@ -195,4 +195,69 @@ describe('collect', () => {
     expect(result.total.tokens).toBe(2)
     expect(result.updatedAt).toBeGreaterThan(0)
   })
+
+  it('attaches session titles when sessionQuery fulfills and skips when missing', async () => {
+    const persistence = {
+      list: async () => [{ id: 'titled' }],
+      readFrom: async () => ({ events: [usageEvent(1, 2)] }),
+    }
+    const deps = {
+      cachePath: ':memory-title:',
+      now: () => 1,
+      readFile: async () => { throw new Error('x') },
+      writeFile: async () => undefined,
+      mkdir: async () => undefined,
+      rename: async () => undefined,
+    }
+    const usage = await collectUsage({
+      get: name => name === 'sessionPersistence' ? persistence : undefined,
+    }, deps)
+    const date = usage.days[0]!.date
+    const untitled = await collectDay({
+      get: name => name === 'sessionPersistence' ? persistence : undefined,
+    }, date, deps)
+    expect(untitled.sessions[0]?.id).toBe('titled')
+    expect(untitled.sessions[0]?.title).toBeUndefined()
+
+    resetCollectCache()
+    const titled = await collectDay({
+      get: name => {
+        if (name === 'sessionPersistence') return persistence
+        if (name === 'sessionQuery') {
+          return {
+            readTitleSnapshots: async (ids: readonly string[]) => ids.map(sessionId => ({
+              sessionId,
+              status: 'fulfilled' as const,
+              value: { title: { title: 'Morning review' } },
+            })),
+          }
+        }
+        return undefined
+      },
+    }, untitled.date, { ...deps, cachePath: ':memory-title-2:' })
+    expect(titled.sessions[0]?.title).toBe('Morning review')
+
+    resetCollectCache()
+    const warns: string[] = []
+    const failed = await collectDay({
+      logger: { warn: message => { warns.push(message) } },
+      get: name => {
+        if (name === 'sessionPersistence') return persistence
+        if (name === 'sessionQuery') return { readTitleSnapshots: async () => { throw new Error('titles-down') } }
+        return undefined
+      },
+    }, untitled.date, { ...deps, cachePath: ':memory-title-3:' })
+    expect(failed.sessions[0]?.title).toBeUndefined()
+    expect(warns.some(message => message.includes('readTitleSnapshots'))).toBe(true)
+
+    resetCollectCache()
+    const queryThrow = await collectDay({
+      get: name => {
+        if (name === 'sessionPersistence') return persistence
+        if (name === 'sessionQuery') throw new Error('no-query')
+        return undefined
+      },
+    }, untitled.date, { ...deps, cachePath: ':memory-title-4:' })
+    expect(queryThrow.sessions[0]?.title).toBeUndefined()
+  })
 })

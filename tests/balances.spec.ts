@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_PROVIDERS,
   parseBalance,
+  providersFromHost,
   providersFromSettings,
   queryBalance,
   queryBalances,
@@ -89,5 +90,92 @@ describe('balances', () => {
     })
     expect(overlaid[0]).toMatchObject({ apiKeyEnv: 'CUSTOM_KEY', baseURL: 'https://example.test' })
     expect(overlaid[1]?.id).toBe('openrouter')
+  })
+
+  it('overlays aliased host providers and marks unknown ones unsupported', async () => {
+    const settings = {
+      get: (key: string) => key === 'llm-deepseek'
+        ? { apiKeyEnv: 'CUSTOM_KEY', baseURL: 'https://ds.example' }
+        : undefined,
+    }
+    const llm = {
+      listConfigurableProviders: () => [
+        { provider: 'deepseek-official', displayName: 'DeepSeek Official', settingsNs: 'llm-deepseek', settingsPath: [] as const },
+        { provider: 'openai', displayName: 'OpenAI', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'] as const },
+      ],
+      listProviders: () => [{ id: 'openai', name: 'OpenAI' }, { id: 'anthropic', name: 'Anthropic' }],
+    }
+    const providers = providersFromHost(settings, llm)
+    expect(providers.map(provider => provider.id).slice(0, 4)).toEqual(['deepseek', 'openrouter', 'moonshot', 'zai'])
+    expect(providers.find(provider => provider.id === 'deepseek')).toMatchObject({
+      displayName: 'DeepSeek Official',
+      apiKeyEnv: 'CUSTOM_KEY',
+      baseURL: 'https://ds.example',
+      scheme: 'deepseek',
+    })
+    expect(providers.find(provider => provider.id === 'openai')).toMatchObject({ displayName: 'OpenAI' })
+    expect(providers.find(provider => provider.id === 'openai')?.scheme).toBeUndefined()
+    expect(providers.find(provider => provider.id === 'anthropic')?.scheme).toBeUndefined()
+    expect(providersFromHost(undefined).map(provider => provider.id)).toEqual(DEFAULT_PROVIDERS.map(provider => provider.id))
+
+    const fetches: string[] = []
+    const cards = await queryBalances(providers, {
+      resolve: async () => ({ value: 'k' }),
+    }, {
+      fetch: async url => {
+        fetches.push(String(url))
+        return jsonResponse(200, { is_available: true, balance_infos: [{ currency: 'CNY', total_balance: 1 }] })
+      },
+    })
+    expect(cards.find(card => card.id === 'openai')?.status).toBe('unsupported')
+    expect(cards.find(card => card.id === 'anthropic')?.status).toBe('unsupported')
+    expect(fetches.some(url => url.includes('openai') || url.includes('anthropic'))).toBe(false)
+
+    let fetched = false
+    const unsupported = await queryBalances(
+      [{ id: 'openai', displayName: 'OpenAI', apiKeyEnv: 'OPENAI_API_KEY', baseURL: 'https://api.openai.com' }],
+      { resolve: async () => ({ value: 'k' }) },
+      { fetch: async () => { fetched = true; return jsonResponse(200, {}) } },
+    )
+    expect(unsupported[0]).toMatchObject({ id: 'openai', status: 'unsupported' })
+    expect(fetched).toBe(false)
+  })
+
+  it('swallows throwing llm listings and broken settings paths', () => {
+    const broken = providersFromHost({
+      get: key => {
+        if (key === 'llm-pi-ai') throw new Error('settings')
+        return { providers: { openai: 'nope' } }
+      },
+    }, {
+      listConfigurableProviders: () => {
+        throw new Error('directory')
+      },
+      listProviders: () => {
+        throw new Error('live')
+      },
+    })
+    expect(broken.map(provider => provider.id)).toEqual(DEFAULT_PROVIDERS.map(provider => provider.id))
+
+    const walked = providersFromHost({
+      get: key => key === 'llm-pi-ai' ? { providers: 'nope' } : undefined,
+    }, {
+      listConfigurableProviders: () => [
+        { provider: 'openai', displayName: 'OpenAI', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'] },
+      ],
+    })
+    expect(walked.find(provider => provider.id === 'openai')?.scheme).toBeUndefined()
+
+    const throwingProfile = providersFromHost({
+      get: key => {
+        if (key === 'llm-pi-ai') throw new Error('profile')
+        return undefined
+      },
+    }, {
+      listConfigurableProviders: () => [
+        { provider: 'openai', displayName: 'OpenAI', settingsNs: 'llm-pi-ai', settingsPath: [] },
+      ],
+    })
+    expect(throwingProfile.find(provider => provider.id === 'openai')?.displayName).toBe('OpenAI')
   })
 })

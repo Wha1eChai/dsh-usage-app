@@ -8,13 +8,15 @@ This App does not install community usage plugins. The fold and balance algorith
 
 ## What it does
 
-- `/apps/wha1echai.usage` — month heatmap, day detail (models + sessions), four provider balance cards (DeepSeek, OpenRouter, Moonshot, Z.ai), and two subscription cards (OpenCode Go, Z.ai)
+- `/apps/wha1echai.usage` and `/apps/wha1echai.usage/YYYY-MM-DD` — today / month / all-time totals, four token buckets, month heatmap, day detail (models + sessions), Host-discovered provider balance cards, and subscription cards (OpenCode Go, Z.ai)
+- Session rows open the live session (`sessions.open`). A conversation-header control deep-links back into this App
 - Host routes (loopback GET only): `/api/wha1echai-usage/summary`, `/api/wha1echai-usage/day?date=`, `/api/wha1echai-usage/balances`, `/api/wha1echai-usage/subscriptions`
-- Usage is folded from live `sessions.list()` plus `sessionPersistence` logs (`assistant/message` usage and `assistant/chunk` usage chunks)
+- Usage is folded from live `sessions.list()` plus `sessionPersistence` logs (`assistant/message` usage and `assistant/chunk` usage chunks). Day rows may carry `sessionQuery` titles when that peer is present
+- Balances start from DeepSeek / OpenRouter / Moonshot / Z.ai schemes, then overlay `settings` + `llm.listProviders` / `listConfigurableProviders`. Unknown routes show as unsupported; they are not guessed
 - Incremental cache: `$DSH_HOME/storages/wha1echai-usage-cache.json` (`DSH_HOME` defaults to `~/.dsh`)
 - The pack inserts only this plugin
 
-The browser only calls the local HTTP routes.
+The browser only calls the local HTTP routes. Credentials stay on the Host.
 
 ## Requirements
 

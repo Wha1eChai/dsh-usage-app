@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { queryBalances, providersFromSettings, type CredentialsFace } from './balances.js'
+import { queryBalances, providersFromHost, type CredentialsFace, type LlmFace } from './balances.js'
 import { collectDay, collectUsage, type CollectContext, type CollectDeps } from './collect.js'
 import { querySubscriptions } from './subscriptions.js'
 
@@ -95,6 +95,17 @@ function settingsOf(ctx: CollectContext): { get?(key: string): unknown } | undef
   return settings !== undefined && typeof settings.get === 'function' ? settings : undefined
 }
 
+function llmOf(ctx: CollectContext): LlmFace | undefined {
+  try {
+    const llm = ctx.get?.('llm') as LlmFace | undefined
+    return llm !== undefined && (typeof llm.listProviders === 'function' || typeof llm.listConfigurableProviders === 'function')
+      ? llm
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export async function handleSummary(ctx: CollectContext, req: IncomingMessage, res: ServerResponse, deps?: CollectDeps): Promise<void> {
   if (rejectForeignCaller(req, res)) return
   try {
@@ -123,7 +134,7 @@ export async function handleDay(ctx: CollectContext, req: IncomingMessage, res: 
 export async function handleBalances(ctx: CollectContext, req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (rejectForeignCaller(req, res)) return
   try {
-    json(res, 200, { ok: true, balances: await queryBalances(providersFromSettings(settingsOf(ctx)), credentialsOf(ctx)) })
+    json(res, 200, { ok: true, balances: await queryBalances(providersFromHost(settingsOf(ctx), llmOf(ctx)), credentialsOf(ctx)) })
   } catch (error) {
     ctx.logger?.warn(`wha1echai-usage: balances failed: ${String(error)}`)
     json(res, 500, { ok: false, error: 'internal', message: error instanceof Error ? error.message : String(error) })

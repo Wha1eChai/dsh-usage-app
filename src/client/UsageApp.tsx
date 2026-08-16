@@ -3,57 +3,104 @@ import {
   Button,
   IconChevronLeftOutline14,
   IconChevronRightOutline14,
+  IconDataOutline16,
+  IconRefreshOutline16,
+  IconWarningOutline16,
   Pill,
   StateDot,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WebpageAppSlotProps } from '@wha1echai/dsh-webpage/client'
 import { AppEmpty, AppField, AppFields, AppList, AppPage, AppRow } from '@wha1echai/dsh-webpage/ui'
 import type { BalanceCard } from '../balances.js'
 import type { DayDetail } from '../fold.js'
-import type { SubscriptionCard } from '../subscriptions.js'
+import type { SubscriptionWindow } from '../subscriptions.js'
 import type { UsageAppOwner } from '../index.js'
 import type { HeatmapCell, UsagePanelData } from './usage-view.js'
 import {
+  dateFromPath,
+  filterDaysByProvider,
+  formatBucketSummary,
+  formatResetAt,
   formatSessionId,
   formatTokens,
   loadDay,
   loadUsagePanel,
   monthGrid,
   monthLabel,
+  pathFromDate,
+  periodTotals,
   shiftMonth,
+  todayKey,
+  tokensByProvider,
 } from './usage-view.js'
 import styles from './UsageApp.module.css'
+
+interface UsageAppInject {
+  openSession?(id: string): void
+}
 
 export type UsageAppProps =
   WebpageAppSlotProps
   & PropsRenderSlots<'wha1echai.usage.actions'>
   & PropsLocale<'usage'>
+  & InjectFace<UsageAppInject>
+  & { openSession?: (id: string) => void }
 
-const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const
+const WEEKDAY_KEYS = ['weekday0', 'weekday1', 'weekday2', 'weekday3', 'weekday4', 'weekday5', 'weekday6'] as const
 const HEAT_LEVELS = [0, 1, 2, 3, 4] as const
+const WINDOW_KEYS = {
+  session: 'windowSession',
+  weekly: 'windowWeekly',
+  monthly: 'windowMonthly',
+  billing: 'windowBilling',
+} as const
+const REFRESH_MS = 5 * 60 * 1000
 
-function todayKey(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+function bucketLabels(t: UsageAppProps['t']): {
+  input: string
+  output: string
+  cacheRead: string
+  cacheWrite: string
+} {
+  return { input: t('input'), output: t('output'), cacheRead: t('cacheRead'), cacheWrite: t('cacheWrite') }
 }
 
-function statusLabel(status: BalanceCard['status'] | SubscriptionCard['status'], t: UsageAppProps['t']): string {
+function formatCacheHit(rate: number | null | undefined): string {
+  return rate === null || rate === undefined ? '—' : `${rate}%`
+}
+
+function statusLabel(status: string, t: UsageAppProps['t']): string {
   if (status === 'missing') return t('missing')
   if (status === 'error') return t('error')
+  if (status === 'unsupported') return t('unsupported')
   return t('remaining')
 }
 
-function statusDot(status: BalanceCard['status'] | SubscriptionCard['status']): StateDotState {
+function statusDot(status: string): StateDotState {
   if (status === 'error') return 'error'
-  if (status === 'missing') return 'warning'
+  if (status === 'missing' || status === 'unsupported') return 'warning'
   return 'done'
 }
 
 function cellTooltip(cell: HeatmapCell, t: UsageAppProps['t']): string {
   return `${cell.date} · ${t('tokens')} ${formatTokens(cell.tokens)}`
+}
+
+function windowLabel(kind: SubscriptionWindow['kind'], t: UsageAppProps['t']): string {
+  return t(WINDOW_KEYS[kind])
+}
+
+function EmptyFace({ warning, children }: { warning?: boolean; children: string }) {
+  const Icon = warning === true ? IconWarningOutline16 : IconDataOutline16
+  return (
+    <div className={styles.emptyState}>
+      <Icon className={styles.emptyIcon} size={32} />
+      <AppEmpty>{children}</AppEmpty>
+    </div>
+  )
 }
 
 function HeatmapDay({ cell, selected, t, onSelect }: {
@@ -81,27 +128,37 @@ function HeatmapDay({ cell, selected, t, onSelect }: {
   )
 }
 
-function DayDetailSection({ day, selected, t }: {
+function DayDetailSection({ day, selected, t, openSession }: {
   day: DayDetail | undefined
   selected: string
   t: UsageAppProps['t']
+  openSession?: (id: string) => void
 }) {
   if (day === undefined || (day.totals?.tokens ?? 0) === 0) {
     return (
       <section className={styles.section} aria-label={t('dayDetail')}>
         <h2 className={styles.heading}>{t('dayDetail')} {selected}</h2>
-        <AppEmpty>{t('listEmpty')}</AppEmpty>
+        <EmptyFace>{t('listEmpty')}</EmptyFace>
       </section>
     )
   }
+  const totals = day.totals
+  const labels = bucketLabels(t)
   return (
     <section className={styles.section} aria-label={t('dayDetail')}>
       <h2 className={styles.heading}>{t('dayDetail')} {selected}</h2>
-      <AppFields>
-        <AppField field="day-tokens" label={t('tokens')} value={formatTokens(day.totals.tokens)} />
-      </AppFields>
+      <div className={styles.dayFields}>
+        <AppFields>
+          <AppField field="day-tokens" label={t('tokens')} value={formatTokens(totals.tokens)} />
+          <AppField field="day-input" label={t('input')} value={formatTokens(totals.inputTokens ?? 0)} />
+          <AppField field="day-output" label={t('output')} value={formatTokens(totals.outputTokens ?? 0)} />
+          <AppField field="day-cache-read" label={t('cacheRead')} value={formatTokens(totals.cacheReadTokens ?? 0)} />
+          <AppField field="day-cache-write" label={t('cacheWrite')} value={formatTokens(totals.cacheWriteTokens ?? 0)} />
+          <AppField field="day-cache" label={t('cacheHit')} value={formatCacheHit(totals.cacheHitRate)} />
+        </AppFields>
+      </div>
       {day.models.length === 0
-        ? <AppEmpty>{t('noModels')}</AppEmpty>
+        ? <EmptyFace>{t('noModels')}</EmptyFace>
         : (
           <AppList dense label={t('models')}>
             {day.models.map(model => (
@@ -109,21 +166,25 @@ function DayDetailSection({ day, selected, t }: {
                 key={model.model}
                 dense
                 title={model.model}
-                description={`${t('tokens')} ${formatTokens(model.tokens)}`}
+                description={formatBucketSummary(model, labels)}
+                trailing={formatTokens(model.tokens)}
               />
             ))}
           </AppList>
         )}
       {day.sessions.length === 0
-        ? <AppEmpty>{t('noSessions')}</AppEmpty>
+        ? <EmptyFace>{t('noSessions')}</EmptyFace>
         : (
           <AppList dense label={t('sessions')}>
             {day.sessions.map(session => (
               <AppRow
                 key={session.id}
                 dense
-                title={<span title={session.id}>{formatSessionId(session.id)}</span>}
-                description={`${t('tokens')} ${formatTokens(session.tokens)}`}
+                data-app-id={session.id}
+                title={<span title={session.id}>{session.title ?? formatSessionId(session.id)}</span>}
+                description={formatBucketSummary(session, labels)}
+                trailing={formatTokens(session.tokens)}
+                onClick={openSession === undefined ? undefined : () => openSession(session.id)}
               />
             ))}
           </AppList>
@@ -132,16 +193,41 @@ function DayDetailSection({ day, selected, t }: {
   )
 }
 
+function BalanceMeta({ card, t }: { card: BalanceCard; t: UsageAppProps['t'] }) {
+  if (card.status !== 'ok') return null
+  const lines: { key: string; label: string; value: number }[] = []
+  if (card.granted !== undefined) lines.push({ key: 'granted', label: t('granted'), value: card.granted })
+  if (card.toppedUp !== undefined) lines.push({ key: 'toppedUp', label: t('toppedUp'), value: card.toppedUp })
+  if (card.used !== undefined) lines.push({ key: 'used', label: t('used'), value: card.used })
+  if (card.limit !== undefined) lines.push({ key: 'limit', label: t('limit'), value: card.limit })
+  if (lines.length === 0) return null
+  return (
+    <>
+      {lines.map(line => (
+        <p key={line.key} className={styles.cardMeta}>{line.label} {line.value}</p>
+      ))}
+    </>
+  )
+}
+
 /** Local ledger heatmap plus Host-proxied provider cards. */
-export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
+export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: UsageAppProps) {
   const owner: UsageAppOwner = Object.freeze({ appPath })
   const actions = renderSlot('wha1echai.usage.actions', owner)
+  const pathDate = dateFromPath(appPath)
+  const selected = pathDate ?? todayKey()
   const [panel, setPanel] = useState<UsagePanelData | undefined>()
   const [day, setDay] = useState<DayDetail | undefined>()
-  const [cursor, setCursor] = useState(todayKey)
-  const [selected, setSelected] = useState(todayKey)
+  const [cursor, setCursor] = useState(selected)
+  const [provider, setProvider] = useState('all')
   const [error, setError] = useState<string | undefined>()
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    if (pathDate !== null) return
+    navigate(pathFromDate(todayKey()), { replace: true })
+  }, [navigate, pathDate])
 
   useEffect(() => {
     let cancelled = false
@@ -173,31 +259,107 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
     }
   }, [selected])
 
-  const grid = useMemo(() => monthGrid(cursor, panel?.summary.days ?? []), [cursor, panel])
+  useEffect(() => {
+    let cancelled = false
+    const timer = window.setInterval(() => {
+      setRefreshing(true)
+      void Promise.all([loadUsagePanel(), loadDay(selected)]).then(([next, nextDay]) => {
+        if (cancelled) return
+        setPanel(next)
+        setDay(nextDay)
+        setError(undefined)
+        setRefreshing(false)
+      }, () => {
+        if (!cancelled) setRefreshing(false)
+      })
+    }, REFRESH_MS)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [selected])
+
+  const refresh = () => {
+    setRefreshing(true)
+    void Promise.all([loadUsagePanel(), loadDay(selected)]).then(([next, nextDay]) => {
+      setPanel(next)
+      setDay(nextDay)
+      setError(undefined)
+      setRefreshing(false)
+    }, () => {
+      setRefreshing(false)
+    })
+  }
+
+  const days = panel?.summary.days ?? []
+  const filteredDays = useMemo(() => filterDaysByProvider(days, provider), [days, provider])
+  const grid = useMemo(() => monthGrid(cursor, filteredDays), [cursor, filteredDays])
+  const totals = useMemo(() => periodTotals(filteredDays), [filteredDays])
+  const providers = useMemo(() => tokensByProvider(days), [days])
 
   return (
-    <article data-route="/">
+    <article data-route={`/${selected}`}>
       <AppPage title={t('title')} description={t('description')} actions={actions} actionsLabel={t('actions')}>
-        {loading ? <AppEmpty>{t('loading')}</AppEmpty> : null}
-        {error !== undefined && !loading ? <AppEmpty>{t('loadError')}</AppEmpty> : null}
+        {loading && panel === undefined ? <EmptyFace>{t('loading')}</EmptyFace> : null}
+        {error !== undefined && !loading && panel === undefined ? <EmptyFace warning>{t('loadError')}</EmptyFace> : null}
         {panel !== undefined
           ? (
             <>
+              <div className={styles.toolbar}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<IconRefreshOutline16 />}
+                  aria-label={t('refresh')}
+                  aria-busy={refreshing}
+                  disabled={refreshing}
+                  onClick={refresh}
+                />
+              </div>
               <div className={styles.hero}>
-                <AppFields>
-                  <AppField
-                    field="tokens"
-                    label={t('tokens')}
-                    value={formatTokens(panel.summary.total.tokens)}
-                    valueClassName={styles.heroValue}
-                  />
-                  <AppField
-                    field="cache"
-                    label={t('cacheHit')}
-                    value={panel.summary.total.cacheHitRate === null ? '—' : `${panel.summary.total.cacheHitRate}%`}
-                    valueClassName={styles.heroValue}
-                  />
-                </AppFields>
+                <div className={styles.periods}>
+                  <AppFields>
+                    <AppField
+                      field="today"
+                      label={t('today')}
+                      value={formatTokens(totals.today.tokens)}
+                      valueClassName={styles.heroValue}
+                    />
+                    <AppField
+                      field="month"
+                      label={t('thisMonth')}
+                      value={formatTokens(totals.month.tokens)}
+                      valueClassName={styles.heroValue}
+                    />
+                    <AppField
+                      field="all"
+                      label={t('allTime')}
+                      value={formatTokens(totals.all.tokens)}
+                      valueClassName={styles.heroValue}
+                    />
+                  </AppFields>
+                </div>
+                <div className={styles.buckets}>
+                  <AppFields>
+                    <AppField field="input" label={t('input')} value={formatTokens(totals.all.inputTokens)} />
+                    <AppField field="output" label={t('output')} value={formatTokens(totals.all.outputTokens)} />
+                    <AppField field="cache-read" label={t('cacheRead')} value={formatTokens(totals.all.cacheReadTokens)} />
+                    <AppField field="cache-write" label={t('cacheWrite')} value={formatTokens(totals.all.cacheWriteTokens)} />
+                    <AppField field="cache" label={t('cacheHit')} value={formatCacheHit(totals.all.cacheHitRate)} />
+                  </AppFields>
+                </div>
+              </div>
+              <div className={styles.providers} data-provider-filter role="group" aria-label={t('providers')}>
+                <Pill active={provider === 'all'} onClick={() => setProvider('all')}>{t('allProviders')}</Pill>
+                {providers.map(item => (
+                  <Pill
+                    key={item.provider}
+                    active={provider === item.provider}
+                    onClick={() => setProvider(item.provider)}
+                  >
+                    {item.provider}
+                  </Pill>
+                ))}
               </div>
               <section className={styles.heatmap} aria-label={t('heatmap')}>
                 <div className={styles.nav}>
@@ -219,7 +381,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                 </div>
                 <div className={styles.calendar}>
                   <div className={styles.weekdays}>
-                    {WEEKDAYS.map((label, index) => <span key={`${label}-${index}`} className={styles.weekday}>{label}</span>)}
+                    {WEEKDAY_KEYS.map(key => <span key={key} className={styles.weekday}>{t(key)}</span>)}
                   </div>
                   <div className={styles.cells}>
                     {grid.cells.map(cell => (
@@ -228,7 +390,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                         cell={cell}
                         selected={selected}
                         t={t}
-                        onSelect={setSelected}
+                        onSelect={date => navigate(pathFromDate(date))}
                       />
                     ))}
                   </div>
@@ -243,7 +405,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                   </div>
                 </div>
               </section>
-              <DayDetailSection day={day} selected={selected} t={t} />
+              <DayDetailSection day={day} selected={selected} t={t} openSession={openSession} />
               <section className={styles.cards} aria-label={t('balances')}>
                 <h2 className={styles.heading}>{t('balances')}</h2>
                 {panel.balances.map(card => (
@@ -259,6 +421,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                         {card.status !== 'ok' && card.message !== undefined ? ` · ${card.message}` : ''}
                       </span>
                     </p>
+                    <BalanceMeta card={card} t={t} />
                   </article>
                 ))}
               </section>
@@ -268,7 +431,7 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                   <article key={card.id} className={styles.card} data-subscription={card.id} data-status={card.status}>
                     <div className={styles.cardHead}>
                       <h3 className={styles.cardTitle}>{card.displayName}</h3>
-                      <Pill active>{card.plan}</Pill>
+                      <Pill active className={styles.pillOnCard}>{card.plan}</Pill>
                     </div>
                     <p className={styles.status}>
                       <StateDot state={statusDot(card.status)} />
@@ -276,7 +439,10 @@ export function UsageApp({ appPath, renderSlot, t }: UsageAppProps) {
                     </p>
                     {card.windows.map(window => (
                       <div key={window.kind} className={styles.window}>
-                        <p className={styles.cardMeta}>{window.kind} {window.usedPercent}%</p>
+                        <p className={styles.cardMeta}>{windowLabel(window.kind, t)} {window.usedPercent}%</p>
+                        {window.resetsAt !== undefined
+                          ? <p className={styles.cardMeta}>{t('resetsAt')} {formatResetAt(window.resetsAt)}</p>
+                          : null}
                         <div className={styles.bar}><div className={styles.fill} style={{ width: `${window.usedPercent}%` }} /></div>
                       </div>
                     ))}

@@ -277,8 +277,55 @@ export async function collectUsage(ctx: CollectContext, deps: CollectDeps = {}):
   return inflight
 }
 
+interface SessionQueryFace {
+  readTitleSnapshots?(ids: readonly string[]): Promise<ReadonlyArray<{
+    sessionId?: string
+    status: string
+    value?: { title?: { title?: string } }
+  }>>
+}
+
+function sessionQueryOf(ctx: CollectContext): SessionQueryFace | undefined {
+  try {
+    const value = ctx.get?.('sessionQuery') as SessionQueryFace | undefined
+    return value !== undefined && typeof value.readTitleSnapshots === 'function' ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function attachSessionTitles(ctx: CollectContext, detail: DayDetail): Promise<DayDetail> {
+  const sessionQuery = sessionQueryOf(ctx)
+  if (sessionQuery?.readTitleSnapshots === undefined || detail.sessions.length === 0) return detail
+  try {
+    const results = await sessionQuery.readTitleSnapshots(detail.sessions.map(session => session.id))
+    const titles = new Map<string, string>()
+    for (const [index, result] of results.entries()) {
+      if (result?.status !== 'fulfilled') continue
+      const title = result.value?.title?.title
+      if (typeof title !== 'string' || title === '') continue
+      const id = typeof result.sessionId === 'string' && result.sessionId !== ''
+        ? result.sessionId
+        : detail.sessions[index]?.id
+      if (id !== undefined) titles.set(id, title)
+    }
+    if (titles.size === 0) return detail
+    return {
+      ...detail,
+      sessions: detail.sessions.map(session => {
+        const title = titles.get(session.id)
+        return title === undefined ? session : { ...session, title }
+      }),
+    }
+  } catch (error) {
+    warn(ctx, `wha1echai-usage: readTitleSnapshots failed: ${String(error)}`)
+    return detail
+  }
+}
+
 export async function collectDay(ctx: CollectContext, date: string, deps: CollectDeps = {}): Promise<DayDetail> {
   await collectUsage(ctx, deps)
   const cache = await loadCache(deps)
-  return renderDayDetail(date, Object.entries(cache.sessions).map(([id, state]) => ({ id, days: state.days })))
+  const detail = renderDayDetail(date, Object.entries(cache.sessions).map(([id, state]) => ({ id, days: state.days })))
+  return attachSessionTitles(ctx, detail)
 }

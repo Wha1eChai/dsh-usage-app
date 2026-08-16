@@ -4,6 +4,8 @@ export default {
   expectedClientInject: [
     '@wha1echai/dsh-webpage',
     '@deepseek-ai/dsh-client-locale',
+    '@deepseek-ai/dsh-client-runtime',
+    '@deepseek-ai/dsh-client-ui-conversation',
   ],
   packedAllowlist: [
     'package/package.json',
@@ -26,6 +28,7 @@ export default {
     'package/lib/types/client/locales.d.ts',
     'package/lib/types/client/usage-view.d.ts',
     'package/lib/types/client/UsageApp.d.ts',
+    'package/lib/types/client/UsageHeaderAction.d.ts',
   ],
   patchMustInclude: ["name: '@wha1echai/dsh-usage-app'"],
   patchMustNotInclude: ["name: '@wha1echai/dsh-webpage'"],

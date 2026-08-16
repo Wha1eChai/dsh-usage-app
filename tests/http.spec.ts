@@ -80,6 +80,17 @@ describe('usage routes', () => {
     const balances = res()
     await handleBalances(ctx, req(), balances as never)
     expect(balances.status).toBe(200)
+    expect(JSON.parse(balances.body ?? '{}').balances).toHaveLength(4)
+    const llmThrow = res()
+    await handleBalances({
+      get: (name: string) => {
+        if (name === 'llm') throw new Error('llm')
+        if (name === 'settings') return { get: () => undefined }
+        if (name === 'credentials') return { resolve: async () => undefined }
+        return undefined
+      },
+    }, req(), llmThrow as never)
+    expect(llmThrow.status).toBe(200)
     const subscriptions = res()
     await handleSubscriptions(ctx, req(), subscriptions as never)
     expect(subscriptions.status).toBe(200)
@@ -127,6 +138,9 @@ describe('usage routes', () => {
     registerUsageRoutes({ get: () => undefined })
     apply()
     apply({ get: () => { throw new Error('outer') } })
+    const injectBoom = { inject: () => { throw new Error('inject') }, logger: { warn: vi.fn() }, get: () => undefined }
+    apply(injectBoom)
+    expect(injectBoom.logger.warn).toHaveBeenCalled()
     const injected: string[] = []
     apply({
       inject: (_deps, callback) => {
@@ -159,6 +173,13 @@ describe('usage routes', () => {
     }
     registerUsageRoutes(throwing)
     expect(throwing.logger.warn).not.toHaveBeenCalled()
+    const explodingEffect = {
+      logger: { warn: vi.fn() },
+      effect: () => { throw new Error('effect') },
+      get: (name: string) => name === 'webServer' ? { register: () => () => {} } : undefined,
+    }
+    registerUsageRoutes(explodingEffect)
+    expect(explodingEffect.logger.warn).toHaveBeenCalled()
     const handlers: Array<(req: never, res: never) => void> = []
     registerUsageRoutes({
       effect: (fn: () => () => void) => { fn() },
