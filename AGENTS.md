@@ -1,6 +1,6 @@
 # AGENTS
 
-Independent DSH Webpage App. Package `@wha1echai/dsh-usage-app`. App ID `wha1echai.usage`, `surface: 'panel'`. Peer on `@wha1echai/dsh-webpage`: public `/client` types only, never Webpage source paths.
+Independent DSH Webpage App. Package `@dshapps/usage-app`. App ID `dshapps.usage`, `surface: 'panel'`. Peer on `@dshapps/webpage`: public `/client` types only, never Webpage source paths.
 
 The heatmap is local session tokens. Balances and subscriptions are Host-proxied provider accounts. Credentials stay on the Host (`credentials.resolve`) and never reach the browser. Keep `surface: 'panel'`. Do not rewrite the fold algorithm.
 
@@ -8,12 +8,12 @@ The heatmap is local session tokens. Balances and subscriptions are Host-proxied
 
 - Pin DSH packages to `0.1.0-rc.6`. Package manager is `pnpm@11.7.0`. Node is `^22.19.0 || >=24.0.0`.
 - Host `apply` soft-gets `webServer` via `ctx.inject(['webServer'], …)` or `ctx.get`. Soft-get `llm` / `sessionQuery` / other optional peers. Do not hard-`inject` Host peers.
-- HTTP is loopback GET only: `/api/wha1echai-usage/summary`, `/day?date=`, `/balances`, `/subscriptions`.
+- HTTP is loopback GET only: `/api/dshapps-usage/summary`, `/day?date=`, `/balances`, `/subscriptions`.
 - Balance schemes are a closed alias set: `deepseek` / `deepseek-official`, `openrouter`, `moonshot` / `kimi`, `zai` / `z.ai` / `glm`. Unknown routes are `unsupported`; do not guess HTTP.
 - The panel shows only `ok` and `error` cards (`visibleAccountCards` in `src/client/usage-view.ts`). Hide `missing` (no credential) and `unsupported` (no public balance API). Hide `ok` balance cards with no remaining/granted/toppedUp/used/limit (`visibleBalanceCards`). Omit the whole section when the filtered list is empty.
 - Provider pills filter the heatmap, period totals, and day detail (`filterDaysByProvider` / `filterDayByProvider`).
-- Selected day is the URL: `/apps/wha1echai.usage/YYYY-MM-DD`. `/` and `/today` mean today. Invalid paths `replace` to today.
-- Session rows call `ctx.sessions.open`. The conversation header action opens `pages.open('wha1echai.usage', '/')`.
+- Selected day is the URL: `/apps/dshapps.usage/YYYY-MM-DD`. `/` and `/today` mean today. Invalid paths `replace` to today.
+- Session rows call `ctx.sessions.open`. The conversation header action opens `pages.open('dshapps.usage', '/')`.
 - Chinese locale is the source of truth; English keys must match. Tokens are `--dsw-alias-*` only (never `--dsw-alias-fill-l2`). Light theme: `bg-layer-1/2/3` are the same white — depth from borders.
 - Do not invent pricing or a year heatmap. Do not change `applyUsageDelta` / turn:step replace.
 - `dsh-app-check` scans `*.md` and source. Do not name the adjacent official DSH checkout (`['deepseek', 'harness'].join('-')`) or the forbidden UI/router libraries listed in that checker's `FORBIDDEN_UI` regex.
@@ -29,7 +29,7 @@ The heatmap is local session tokens. Balances and subscriptions are Host-proxied
 - `dsh-app-check.config.mjs` — `expectedClientInject` and packed allowlist
 - `docs/research/` — local dated capability notes (gitignored); treat as stale if they disagree with source
 
-Client inject is `['pages', 'slots', 'locale', 'sessions']`. `dsh.client.inject` also lists `@wha1echai/dsh-webpage`, `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-runtime`, `@deepseek-ai/dsh-client-ui-conversation`.
+Client inject is `['pages', 'slots', 'locale', 'sessions']`. `dsh.client.inject` also lists `@dshapps/webpage`, `@deepseek-ai/dsh-client-locale`, `@deepseek-ai/dsh-client-runtime`, `@deepseek-ai/dsh-client-ui-conversation`.
 
 ## Verify
 

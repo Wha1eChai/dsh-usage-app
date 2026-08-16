@@ -97,8 +97,8 @@ function purityPlugin(): NonNullable<UserConfig['plugins']>[number] {
   return {
     name: 'dsh-client-bundle-purity',
     resolveId(source: string) {
-      if (source === '@wha1echai/dsh-webpage/ui') return null
-      if (source === '@wha1echai/dsh-webpage' || source.startsWith('@wha1echai/dsh-webpage/')) {
+      if (source === '@dshapps/webpage/ui') return null
+      if (source === '@dshapps/webpage' || source.startsWith('@dshapps/webpage/')) {
         throw new Error(
           `client bundle purity: "${source}" must stay type-only except /ui; App navigation uses ctx.pages`,
         )

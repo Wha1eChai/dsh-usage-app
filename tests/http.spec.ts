@@ -72,10 +72,10 @@ describe('usage routes', () => {
     await handleSummary(ctx, req(), summary as never, { cachePath: ':memory:', now: () => 1, readFile: async () => { throw new Error('x') }, writeFile: async () => undefined, mkdir: async () => undefined, rename: async () => undefined })
     expect(summary.status).toBe(200)
     const badDay = res()
-    await handleDay(ctx, req({ url: '/api/wha1echai-usage/day' }), badDay as never)
+    await handleDay(ctx, req({ url: '/api/dshapps-usage/day' }), badDay as never)
     expect(badDay.status).toBe(400)
     const day = res()
-    await handleDay(ctx, req({ url: '/api/wha1echai-usage/day?date=2026-08-15' }), day as never, { cachePath: ':memory:', now: () => 1, readFile: async () => { throw new Error('x') }, writeFile: async () => undefined, mkdir: async () => undefined, rename: async () => undefined })
+    await handleDay(ctx, req({ url: '/api/dshapps-usage/day?date=2026-08-15' }), day as never, { cachePath: ':memory:', now: () => 1, readFile: async () => { throw new Error('x') }, writeFile: async () => undefined, mkdir: async () => undefined, rename: async () => undefined })
     expect(day.status).toBe(200)
     const balances = res()
     await handleBalances(ctx, req(), balances as never)
@@ -105,7 +105,7 @@ describe('usage routes', () => {
     await handleSummary(exploding, req(), summary as never)
     expect(summary.status).toBe(500)
     const day = res()
-    await handleDay(exploding, req({ url: '/api/wha1echai-usage/day?date=2026-08-15' }), day as never)
+    await handleDay(exploding, req({ url: '/api/dshapps-usage/day?date=2026-08-15' }), day as never)
     expect(day.status).toBe(500)
     const balances = res()
     await handleBalances({
@@ -216,10 +216,10 @@ describe('usage routes', () => {
     }
     registerUsageRoutes(ctx)
     expect(registered).toEqual([
-      '/api/wha1echai-usage/summary',
-      '/api/wha1echai-usage/day',
-      '/api/wha1echai-usage/balances',
-      '/api/wha1echai-usage/subscriptions',
+      '/api/dshapps-usage/summary',
+      '/api/dshapps-usage/day',
+      '/api/dshapps-usage/balances',
+      '/api/dshapps-usage/subscriptions',
     ])
   })
 })

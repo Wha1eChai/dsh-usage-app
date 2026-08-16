@@ -18,7 +18,7 @@ function props(
     ? { renderSlot: renderSlotOrExtra, ...extra }
     : { ...renderSlotOrExtra, ...extra }
   return {
-    appId: 'wha1echai.usage',
+    appId: 'dshapps.usage',
     appPath: '/',
     search: '',
     hash: '',
@@ -321,7 +321,7 @@ describe('UsageApp', () => {
   it('ignores stale panel and day responses after unmount', async () => {
     let rejectPanel!: (reason: unknown) => void
     vi.stubGlobal('fetch', async (path: string) => {
-      if (String(path).includes('/summary') || String(path) === '/api/wha1echai-usage/summary') {
+      if (String(path).includes('/summary') || String(path) === '/api/dshapps-usage/summary') {
         return new Promise<Response>((_resolve, reject) => { rejectPanel = reject })
       }
       return json({ ok: true, date: '2026-08-15', totals: { tokens: 0 }, models: [], sessions: [], balances: [], subscriptions: [] })

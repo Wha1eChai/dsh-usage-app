@@ -1,6 +1,6 @@
 import { Pill } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { AppField, AppFields } from '@wha1echai/dsh-webpage/ui'
+import { AppField, AppFields } from '@dshapps/webpage/ui'
 import { formatTokens, type PeriodTotals } from './usage-view.js'
 import styles from './UsagePeriodHero.module.css'
 

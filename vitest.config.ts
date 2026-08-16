@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     server: {
       deps: {
-        inline: ['@deepseek-ai/dsh-client-ui-primitives', 'katex', '@wha1echai/dsh-webpage/ui'],
+        inline: ['@deepseek-ai/dsh-client-ui-primitives', 'katex', '@dshapps/webpage/ui'],
       },
     },
     include: ['tests/**/*.spec.{ts,tsx}'],

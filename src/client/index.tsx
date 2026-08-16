@@ -1,7 +1,7 @@
 import { lazy } from 'react'
 import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { AppDescriptor } from '@wha1echai/dsh-webpage/client'
+import type { AppDescriptor } from '@dshapps/webpage/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 
 import { UsageHeaderAction } from './UsageHeaderAction.js'
@@ -13,7 +13,7 @@ export const UsageAppBody = lazy(async () => {
 })
 
 const descriptor = Object.freeze({
-  id: 'wha1echai.usage',
+  id: 'dshapps.usage',
   label: 'Usage',
   description: 'Local token heatmap and Host-proxied provider balances.',
   order: 30,
@@ -22,9 +22,9 @@ const descriptor = Object.freeze({
 }) satisfies AppDescriptor
 
 const LOCALE_NAMESPACE = 'usage'
-const APP_ID = 'wha1echai.usage'
+const APP_ID = 'dshapps.usage'
 
-export const name = '@wha1echai/dsh-usage-app'
+export const name = '@dshapps/usage-app'
 export const inject = ['pages', 'slots', 'locale', 'sessions']
 
 export function apply(ctx: ClientContext): void {
@@ -36,7 +36,7 @@ export function apply(ctx: ClientContext): void {
       key: APP_ID,
       locale: LOCALE_NAMESPACE,
       children: {
-        'wha1echai.usage.actions': { kind: 'list', scope: 'root' },
+        'dshapps.usage.actions': { kind: 'list', scope: 'root' },
       },
       inject: () => ({
         openSession: (id: string) => { ctx.sessions.open(id as SessionId) },
@@ -44,7 +44,7 @@ export function apply(ctx: ClientContext): void {
     }, UsageAppBody))
     const unregisterHeader = ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
       name: 'conversation.session.header.actions',
-      id: 'wha1echai.usage',
+      id: 'dshapps.usage',
       order: 30,
       locale: LOCALE_NAMESPACE,
       inject: () => ({

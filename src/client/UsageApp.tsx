@@ -10,8 +10,8 @@ import {
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
-import type { WebpageAppSlotProps } from '@wha1echai/dsh-webpage/client'
-import { AppEmpty, AppField, AppFields, AppList, AppPage, AppRow } from '@wha1echai/dsh-webpage/ui'
+import type { WebpageAppSlotProps } from '@dshapps/webpage/client'
+import { AppEmpty, AppField, AppFields, AppList, AppPage, AppRow } from '@dshapps/webpage/ui'
 import type { DayDetail } from '../fold.js'
 import type { UsageAppOwner } from '../index.js'
 import type { HeatmapCell, UsagePanelData } from './usage-view.js'
@@ -42,7 +42,7 @@ interface UsageAppInject {
 
 export type UsageAppProps =
   WebpageAppSlotProps
-  & PropsRenderSlots<'wha1echai.usage.actions'>
+  & PropsRenderSlots<'dshapps.usage.actions'>
   & PropsLocale<'usage'>
   & InjectFace<UsageAppInject>
   & { openSession?: (id: string) => void }
@@ -173,7 +173,7 @@ function DayDetailSection({ day, selected, provider, t, openSession }: {
 /** Local ledger heatmap plus Host-proxied provider cards. */
 export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: UsageAppProps) {
   const owner: UsageAppOwner = Object.freeze({ appPath })
-  const actions = renderSlot('wha1echai.usage.actions', owner)
+  const actions = renderSlot('dshapps.usage.actions', owner)
   const pathDate = dateFromPath(appPath)
   const selected = pathDate ?? todayKey()
   const [panel, setPanel] = useState<UsagePanelData | undefined>()

@@ -20,7 +20,7 @@ describe('collect', () => {
   it('folds live sessions incrementally and drops vanished ones', async () => {
     const memory = new Map<string, string>()
     const deps = {
-      cachePath: '/tmp/wha1echai-usage-cache.json',
+      cachePath: '/tmp/dshapps-usage-cache.json',
       now: () => 1,
       readFile: async (path: string) => {
         const hit = memory.get(String(path))
@@ -152,7 +152,7 @@ describe('collect', () => {
     const parsed = await loadCache({ cachePath: 'extra.json', readFile: async () => extras })
     expect(parsed.sessions.live?.kind).toBe('live')
     expect(parsed.sessions.partial?.lastSample).toBeNull()
-    expect(cachePath()).toMatch(/wha1echai-usage-cache\.json$/)
+    expect(cachePath()).toMatch(/dshapps-usage-cache\.json$/)
   })
 
   it('skips unchanged revisions and applies a contiguous tail', async () => {

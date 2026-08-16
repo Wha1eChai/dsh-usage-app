@@ -118,15 +118,15 @@ export async function fetchJson<T>(path: string, fetchImpl: typeof fetch = fetch
 
 export async function loadUsagePanel(fetchImpl: typeof fetch = fetch): Promise<UsagePanelData> {
   const [summary, balances, subscriptions] = await Promise.all([
-    fetchJson<UsageRender & { ok: true }>('/api/wha1echai-usage/summary', fetchImpl),
-    fetchJson<{ ok: true; balances: BalanceCard[] }>('/api/wha1echai-usage/balances', fetchImpl),
-    fetchJson<{ ok: true; subscriptions: SubscriptionCard[] }>('/api/wha1echai-usage/subscriptions', fetchImpl),
+    fetchJson<UsageRender & { ok: true }>('/api/dshapps-usage/summary', fetchImpl),
+    fetchJson<{ ok: true; balances: BalanceCard[] }>('/api/dshapps-usage/balances', fetchImpl),
+    fetchJson<{ ok: true; subscriptions: SubscriptionCard[] }>('/api/dshapps-usage/subscriptions', fetchImpl),
   ])
   return { summary, balances: balances.balances, subscriptions: subscriptions.subscriptions }
 }
 
 export async function loadDay(date: string, fetchImpl: typeof fetch = fetch): Promise<DayDetail> {
-  return fetchJson<DayDetail & { ok: true }>(`/api/wha1echai-usage/day?date=${date}`, fetchImpl)
+  return fetchJson<DayDetail & { ok: true }>(`/api/dshapps-usage/day?date=${date}`, fetchImpl)
 }
 
 export function formatTokens(tokens: number): string {

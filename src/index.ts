@@ -6,7 +6,7 @@ export interface UsageAppOwner {
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
-    'wha1echai.usage.actions': {
+    'dshapps.usage.actions': {
       kind: 'list'
       scope: 'root'
       owner: UsageAppOwner
@@ -25,7 +25,7 @@ export function apply(ctx?: UsageHostContext): void {
       return
     }
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: inject webServer failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: inject webServer failed: ${String(error)}`)
   }
   registerUsageRoutes(ctx)
 }

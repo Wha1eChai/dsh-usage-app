@@ -58,7 +58,7 @@ function warn(ctx: CollectContext, message: string): void {
 
 export function cachePath(): string {
   const home = process.env.DSH_HOME ?? join(homedir(), '.dsh')
-  return join(home, 'storages', 'wha1echai-usage-cache.json')
+  return join(home, 'storages', 'dshapps-usage-cache.json')
 }
 
 function serializeSession(state: UsageState): Record<string, unknown> {
@@ -174,7 +174,7 @@ export async function saveCache(ctx: CollectContext, cache: UsageCache, deps: Co
     await (deps.writeFile ?? writeFile)(tmp, JSON.stringify(serialized), 'utf8')
     await (deps.rename ?? rename)(tmp, path)
   } catch (error) {
-    warn(ctx, `wha1echai-usage: saving usage cache failed: ${String(error)}`)
+    warn(ctx, `dshapps-usage: saving usage cache failed: ${String(error)}`)
   }
 }
 
@@ -184,7 +184,7 @@ function liveSessions(ctx: CollectContext): LiveSession[] {
   try {
     return live.list()
   } catch (error) {
-    warn(ctx, `wha1echai-usage: sessions.list failed: ${String(error)}`)
+    warn(ctx, `dshapps-usage: sessions.list failed: ${String(error)}`)
     return []
   }
 }
@@ -205,7 +205,7 @@ async function foldPersisted(ctx: CollectContext, cache: UsageCache, attached: S
     try {
       snapshots = await persistence.listSnapshots()
     } catch (error) {
-      warn(ctx, `wha1echai-usage: listSnapshots failed, falling back to list(): ${String(error)}`)
+      warn(ctx, `dshapps-usage: listSnapshots failed, falling back to list(): ${String(error)}`)
     }
   }
   const metas = snapshots !== null ? snapshots.map(entry => entry.header) : await persistence.list()
@@ -237,7 +237,7 @@ async function foldPersisted(ctx: CollectContext, cache: UsageCache, attached: S
         state.kind = 'persisted'
         if (revision !== undefined) state.revision = revision
       } catch (error) {
-        warn(ctx, `wha1echai-usage: reading persisted session "${meta.id}" failed: ${String(error)}`)
+        warn(ctx, `dshapps-usage: reading persisted session "${meta.id}" failed: ${String(error)}`)
       }
     }
     cache.sessions[meta.id] = state
@@ -318,7 +318,7 @@ async function attachSessionTitles(ctx: CollectContext, detail: DayDetail): Prom
       }),
     }
   } catch (error) {
-    warn(ctx, `wha1echai-usage: readTitleSnapshots failed: ${String(error)}`)
+    warn(ctx, `dshapps-usage: readTitleSnapshots failed: ${String(error)}`)
     return detail
   }
 }

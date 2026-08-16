@@ -34,10 +34,10 @@ describe('Usage App composition', () => {
       effect,
     } as never)
 
-    expect(name).toBe('@wha1echai/dsh-usage-app')
+    expect(name).toBe('@dshapps/usage-app')
     expect(inject).toEqual(['pages', 'slots', 'locale', 'sessions'])
     expect(pageRegister).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'wha1echai.usage',
+      id: 'dshapps.usage',
       surface: 'panel',
     }))
     expect(localeRegister).toHaveBeenCalledWith('usage', { zh, en })
@@ -45,12 +45,12 @@ describe('Usage App composition', () => {
     expect(slotInject).toHaveBeenCalledWith('conversation.session.header.actions', expect.any(Function))
     expect(slotRegister).toHaveBeenCalledWith(expect.objectContaining({
       name: 'webpage.app',
-      key: 'wha1echai.usage',
+      key: 'dshapps.usage',
       inject: expect.any(Function),
     }), UsageAppBody)
     expect(slotRegister).toHaveBeenCalledWith({
       name: 'conversation.session.header.actions',
-      id: 'wha1echai.usage',
+      id: 'dshapps.usage',
       order: 30,
       locale: 'usage',
       inject: expect.any(Function),
@@ -61,7 +61,7 @@ describe('Usage App composition', () => {
     expect(openSession).toHaveBeenCalledWith('session-1')
     const headerFace = (slotRegister.mock.calls[1]![0] as { inject(): { openUsage(): void } }).inject()
     headerFace.openUsage()
-    expect(open).toHaveBeenCalledWith('wha1echai.usage', '/')
+    expect(open).toHaveBeenCalledWith('dshapps.usage', '/')
 
     cleanups[0]!()
     expect(unregisterHeader).toHaveBeenCalledOnce()
@@ -93,7 +93,7 @@ describe('Usage App host and invariant entries', () => {
     expect(invariantInject).toEqual(['invariants'])
     const invariantRegister = vi.fn(() => () => {})
     const disposer = await applyInvariant({ invariants: { register: invariantRegister } } as never)
-    expect(invariantRegister).toHaveBeenCalledWith('@wha1echai/dsh-usage-app', expect.any(Function))
+    expect(invariantRegister).toHaveBeenCalledWith('@dshapps/usage-app', expect.any(Function))
     invariantRegister.mock.calls[0]![1]()
     disposer()
   })

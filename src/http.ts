@@ -3,10 +3,10 @@ import { queryBalances, providersFromHost, type CredentialsFace, type LlmFace } 
 import { collectDay, collectUsage, type CollectContext, type CollectDeps } from './collect.js'
 import { querySubscriptions } from './subscriptions.js'
 
-export const SUMMARY_PATH = '/api/wha1echai-usage/summary'
-export const DAY_PATH = '/api/wha1echai-usage/day'
-export const BALANCES_PATH = '/api/wha1echai-usage/balances'
-export const SUBSCRIPTIONS_PATH = '/api/wha1echai-usage/subscriptions'
+export const SUMMARY_PATH = '/api/dshapps-usage/summary'
+export const DAY_PATH = '/api/dshapps-usage/day'
+export const BALANCES_PATH = '/api/dshapps-usage/balances'
+export const SUBSCRIPTIONS_PATH = '/api/dshapps-usage/subscriptions'
 
 export const USAGE_ROUTES = [SUMMARY_PATH, DAY_PATH, BALANCES_PATH, SUBSCRIPTIONS_PATH] as const
 
@@ -111,7 +111,7 @@ export async function handleSummary(ctx: CollectContext, req: IncomingMessage, r
   try {
     json(res, 200, { ok: true, ...await collectUsage(ctx, deps) })
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: summary failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: summary failed: ${String(error)}`)
     json(res, 500, { ok: false, error: 'internal', message: error instanceof Error ? error.message : String(error) })
   }
 }
@@ -126,7 +126,7 @@ export async function handleDay(ctx: CollectContext, req: IncomingMessage, res: 
   try {
     json(res, 200, { ok: true, ...await collectDay(ctx, date, deps) })
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: day failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: day failed: ${String(error)}`)
     json(res, 500, { ok: false, error: 'internal', message: error instanceof Error ? error.message : String(error) })
   }
 }
@@ -136,7 +136,7 @@ export async function handleBalances(ctx: CollectContext, req: IncomingMessage, 
   try {
     json(res, 200, { ok: true, balances: await queryBalances(providersFromHost(settingsOf(ctx), llmOf(ctx)), credentialsOf(ctx)) })
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: balances failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: balances failed: ${String(error)}`)
     json(res, 500, { ok: false, error: 'internal', message: error instanceof Error ? error.message : String(error) })
   }
 }
@@ -146,7 +146,7 @@ export async function handleSubscriptions(ctx: CollectContext, req: IncomingMess
   try {
     json(res, 200, { ok: true, subscriptions: await querySubscriptions(credentialsOf(ctx)) })
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: subscriptions failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: subscriptions failed: ${String(error)}`)
     json(res, 500, { ok: false, error: 'internal', message: error instanceof Error ? error.message : String(error) })
   }
 }
@@ -163,7 +163,7 @@ function track(ctx: UsageHostContext, label: string, register: () => () => void)
     try {
       return register()
     } catch (error) {
-      ctx.logger?.warn(`wha1echai-usage: ${label} failed: ${String(error)}`)
+      ctx.logger?.warn(`dshapps-usage: ${label} failed: ${String(error)}`)
       return () => {}
     }
   }
@@ -185,6 +185,6 @@ export function registerUsageRoutes(ctx: UsageHostContext): void {
       }))
     }
   } catch (error) {
-    ctx.logger?.warn(`wha1echai-usage: register failed: ${String(error)}`)
+    ctx.logger?.warn(`dshapps-usage: register failed: ${String(error)}`)
   }
 }

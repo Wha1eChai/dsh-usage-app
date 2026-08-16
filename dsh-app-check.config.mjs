@@ -1,8 +1,8 @@
-/** @type {import('@wha1echai/dsh-app-check').AppCheckConfig} */
+/** @type {import('@dshapps/app-check').AppCheckConfig} */
 export default {
-  name: '@wha1echai/dsh-usage-app',
+  name: '@dshapps/usage-app',
   expectedClientInject: [
-    '@wha1echai/dsh-webpage',
+    '@dshapps/webpage',
     '@deepseek-ai/dsh-client-locale',
     '@deepseek-ai/dsh-client-runtime',
     '@deepseek-ai/dsh-client-ui-conversation',
@@ -32,8 +32,8 @@ export default {
     'package/lib/types/client/UsagePeriodHero.d.ts',
     'package/lib/types/client/UsageHeaderAction.d.ts',
   ],
-  patchMustInclude: ["name: '@wha1echai/dsh-usage-app'"],
-  patchMustNotInclude: ["name: '@wha1echai/dsh-webpage'"],
+  patchMustInclude: ["name: '@dshapps/usage-app'"],
+  patchMustNotInclude: ["name: '@dshapps/webpage'"],
   allowFileDshPins: true,
   require: {
     publishable: true,
