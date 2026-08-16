@@ -17,6 +17,7 @@ import type { UsageAppOwner } from '../index.js'
 import type { HeatmapCell, UsagePanelData } from './usage-view.js'
 import {
   dateFromPath,
+  filterDayByProvider,
   filterDaysByProvider,
   formatBucketSummary,
   formatSessionId,
@@ -102,13 +103,15 @@ function HeatmapDay({ cell, selected, t, onSelect }: {
   )
 }
 
-function DayDetailSection({ day, selected, t, openSession }: {
+function DayDetailSection({ day, selected, provider, t, openSession }: {
   day: DayDetail | undefined
   selected: string
+  provider: string
   t: UsageAppProps['t']
   openSession?: (id: string) => void
 }) {
-  if (day === undefined || (day.totals?.tokens ?? 0) === 0) {
+  const view = day === undefined ? undefined : filterDayByProvider(day, provider)
+  if (view === undefined || (view.totals?.tokens ?? 0) === 0) {
     return (
       <section className={styles.section} aria-label={t('dayDetail')}>
         <h2 className={styles.heading}>{t('dayDetail')} {selected}</h2>
@@ -116,7 +119,7 @@ function DayDetailSection({ day, selected, t, openSession }: {
       </section>
     )
   }
-  const totals = day.totals
+  const totals = view.totals
   const labels = bucketLabels(t)
   return (
     <section className={styles.section} aria-label={t('dayDetail')}>
@@ -131,11 +134,11 @@ function DayDetailSection({ day, selected, t, openSession }: {
           <AppField field="day-cache" label={t('cacheHit')} value={formatCacheHit(totals.cacheHitRate)} />
         </AppFields>
       </div>
-      {day.models.length === 0
+      {view.models.length === 0
         ? <EmptyFace>{t('noModels')}</EmptyFace>
         : (
           <AppList dense label={t('models')}>
-            {day.models.map(model => (
+            {view.models.map(model => (
               <AppRow
                 key={model.model}
                 dense
@@ -146,11 +149,11 @@ function DayDetailSection({ day, selected, t, openSession }: {
             ))}
           </AppList>
         )}
-      {day.sessions.length === 0
+      {view.sessions.length === 0
         ? <EmptyFace>{t('noSessions')}</EmptyFace>
         : (
           <AppList dense label={t('sessions')}>
-            {day.sessions.map(session => (
+            {view.sessions.map(session => (
               <AppRow
                 key={session.id}
                 dense
@@ -331,7 +334,7 @@ export function UsageApp({ appPath, navigate, renderSlot, t, openSession }: Usag
                   </div>
                 </div>
               </section>
-              <DayDetailSection day={day} selected={selected} t={t} openSession={openSession} />
+              <DayDetailSection day={day} selected={selected} provider={provider} t={t} openSession={openSession} />
               <UsageAccountPane
                 balances={panel.balances}
                 subscriptions={panel.subscriptions}

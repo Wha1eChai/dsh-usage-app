@@ -21,6 +21,29 @@ export function visibleAccountCards<T extends { readonly status: string }>(cards
   return cards.filter(card => card.status === 'ok' || card.status === 'error')
 }
 
+export interface BalanceFigures {
+  readonly remaining?: number
+  readonly granted?: number
+  readonly toppedUp?: number
+  readonly used?: number
+  readonly limit?: number
+}
+
+/** An ok card with no remaining/breakdown is an empty shell — hide it. */
+export function hasBalanceFigures(card: BalanceFigures): boolean {
+  return card.remaining !== undefined
+    || card.granted !== undefined
+    || card.toppedUp !== undefined
+    || card.used !== undefined
+    || card.limit !== undefined
+}
+
+export function visibleBalanceCards<T extends { readonly status: string } & BalanceFigures>(
+  cards: readonly T[],
+): T[] {
+  return visibleAccountCards(cards).filter(card => card.status === 'error' || hasBalanceFigures(card))
+}
+
 export interface MonthGrid {
   readonly year: number
   readonly month: number
@@ -224,6 +247,22 @@ export function filterDaysByProvider(days: readonly DayRow[], provider: string):
     filtered.push({ date: day.date, ...withTotals(buckets), models })
   }
   return filtered
+}
+
+/** Day detail follows the same provider switch as the heatmap. */
+export function filterDayByProvider(day: DayDetail, provider: string): DayDetail {
+  if (provider === 'all') return day
+  const models = day.models.filter(model => providerKey(model.model) === provider)
+  const sessions = day.sessions.flatMap(session => {
+    const sessionModels = session.models.filter(model => providerKey(model.model) === provider)
+    if (sessionModels.length === 0) return []
+    const buckets = zeroBuckets()
+    for (const model of sessionModels) addBuckets(buckets, model)
+    return [{ ...session, ...withTotals(buckets), models: sessionModels }]
+  })
+  const buckets = zeroBuckets()
+  for (const model of models) addBuckets(buckets, model)
+  return { date: day.date, totals: withTotals(buckets), models, sessions }
 }
 
 export function formatBucketSummary(

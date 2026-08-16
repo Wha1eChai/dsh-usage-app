@@ -10,7 +10,8 @@ The heatmap is local session tokens. Balances and subscriptions are Host-proxied
 - Host `apply` soft-gets `webServer` via `ctx.inject(['webServer'], …)` or `ctx.get`. Soft-get `llm` / `sessionQuery` / other optional peers. Do not hard-`inject` Host peers.
 - HTTP is loopback GET only: `/api/wha1echai-usage/summary`, `/day?date=`, `/balances`, `/subscriptions`.
 - Balance schemes are a closed alias set: `deepseek` / `deepseek-official`, `openrouter`, `moonshot` / `kimi`, `zai` / `z.ai` / `glm`. Unknown routes are `unsupported`; do not guess HTTP.
-- The panel shows only `ok` and `error` cards (`visibleAccountCards` in `src/client/usage-view.ts`). Hide `missing` (no credential) and `unsupported` (no public balance API). Omit the whole section when the filtered list is empty.
+- The panel shows only `ok` and `error` cards (`visibleAccountCards` in `src/client/usage-view.ts`). Hide `missing` (no credential) and `unsupported` (no public balance API). Hide `ok` balance cards with no remaining/granted/toppedUp/used/limit (`visibleBalanceCards`). Omit the whole section when the filtered list is empty.
+- Provider pills filter the heatmap, period totals, and day detail (`filterDaysByProvider` / `filterDayByProvider`).
 - Selected day is the URL: `/apps/wha1echai.usage/YYYY-MM-DD`. `/` and `/today` mean today. Invalid paths `replace` to today.
 - Session rows call `ctx.sessions.open`. The conversation header action opens `pages.open('wha1echai.usage', '/')`.
 - Chinese locale is the source of truth; English keys must match. Tokens are `--dsw-alias-*` only (never `--dsw-alias-fill-l2`). Light theme: `bg-layer-1/2/3` are the same white — depth from borders.

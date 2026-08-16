@@ -71,6 +71,7 @@ describe('UsageApp', () => {
               limit: 20,
             },
             { id: 'zai', displayName: 'Z.ai', status: 'ok' },
+            { id: 'empty-ok', displayName: 'Empty OK', status: 'ok' },
             { id: 'openrouter', displayName: 'OpenRouter', status: 'missing', message: 'OPENROUTER_API_KEY' },
             { id: 'moonshot', displayName: 'Moonshot', status: 'error', message: 'down' },
             { id: 'kimi', displayName: 'Kimi', status: 'unsupported' },
@@ -139,6 +140,8 @@ describe('UsageApp', () => {
     expect(screen.getByRole('tooltip').textContent).toContain('2026-08-15')
     expect(screen.getByRole('tooltip').textContent).toContain('Tokens')
     expect(document.querySelector('[data-provider="deepseek"][data-status="ok"]')).toBeTruthy()
+    expect(document.querySelector('[data-provider="empty-ok"]')).toBeNull()
+    expect(screen.queryByText('Empty OK')).toBeNull()
     expect(document.querySelector('[data-provider="moonshot"]')).toBeNull()
     expect(document.querySelector('[data-provider="openrouter"]')).toBeNull()
     expect(document.querySelector('[data-provider="kimi"]')).toBeNull()
@@ -224,9 +227,15 @@ describe('UsageApp', () => {
         return json({
           ok: true,
           date: '2026-08-15',
-          totals: { tokens: 10, cacheHitRate: null, ...BUCKETS },
-          models: [{ model: 'deepseek/v3', tokens: 10, ...BUCKETS }],
-          sessions: [{ id: 's1', tokens: 10, ...BUCKETS, models: [] }],
+          totals: { tokens: 12, cacheHitRate: null, inputTokens: 8, outputTokens: 4, cacheReadTokens: 2, cacheWriteTokens: 0 },
+          models: [
+            { model: 'deepseek/v3', tokens: 10, cacheHitRate: null, ...BUCKETS },
+            { model: 'openrouter/gpt', tokens: 2, cacheHitRate: null, inputTokens: 2, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+          ],
+          sessions: [
+            { id: 's1', tokens: 10, ...BUCKETS, models: [{ model: 'deepseek/v3', tokens: 10, ...BUCKETS }] },
+            { id: 's2', tokens: 2, inputTokens: 2, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, models: [{ model: 'openrouter/gpt', tokens: 2, inputTokens: 2, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }] },
+          ],
         })
       }
       return json({
@@ -254,8 +263,14 @@ describe('UsageApp', () => {
     const afterLoad = loads
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => expect(loads).toBeGreaterThan(afterLoad))
+    await waitFor(() => expect(screen.getByText('deepseek/v3')).toBeTruthy())
+    expect(screen.getByText('openrouter/gpt')).toBeTruthy()
     fireEvent.click(screen.getByText('deepseek'))
+    expect(screen.getByText('deepseek/v3')).toBeTruthy()
+    expect(screen.queryByText('openrouter/gpt')).toBeNull()
+    expect(document.querySelector('[data-field="day-tokens"] dd')?.textContent).toBe('12')
     fireEvent.click(screen.getByText('All'))
+    expect(screen.getByText('openrouter/gpt')).toBeTruthy()
     expect(screen.getByText('Today')).toBeTruthy()
   })
 

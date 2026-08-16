@@ -23,6 +23,8 @@ import {
   tokensByDate,
   tokensByProvider,
   visibleAccountCards,
+  visibleBalanceCards,
+  filterDayByProvider,
 } from '../src/client/usage-view.js'
 
 function modelRow(model: string, buckets: TokenBuckets): ModelRow {
@@ -176,5 +178,37 @@ describe('usage-view', () => {
       { status: 'missing' },
       { status: 'unsupported' },
     ]).map(card => card.status)).toEqual(['ok', 'error'])
+  })
+
+  it('hides ok balance cards that have no figures', () => {
+    expect(visibleBalanceCards([
+      { status: 'ok', remaining: 3 },
+      { status: 'ok' },
+      { status: 'error' },
+      { status: 'missing' },
+    ]).map(card => card.status)).toEqual(['ok', 'error'])
+  })
+
+  it('filters day detail models, sessions, and totals by provider', () => {
+    const buckets = { inputTokens: 10, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 }
+    const other = { inputTokens: 2, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 }
+    const day = {
+      date: '2026-08-13',
+      totals: { tokens: 18, cacheHitRate: null, ...buckets, inputTokens: 12, outputTokens: 6 },
+      models: [
+        modelRow('deepseek-official/v4', buckets),
+        modelRow('opencode-go/deepseek-v4-pro', other),
+      ],
+      sessions: [
+        { id: 's1', title: 'DeepSeek chat', tokens: 15, ...buckets, models: [modelRow('deepseek-official/v4', buckets)] },
+        { id: 's2', title: 'Go chat', tokens: 3, ...other, models: [modelRow('opencode-go/deepseek-v4-pro', other)] },
+      ],
+    }
+    expect(filterDayByProvider(day, 'all')).toBe(day)
+    const filtered = filterDayByProvider(day, 'deepseek-official')
+    expect(filtered.models.map(model => model.model)).toEqual(['deepseek-official/v4'])
+    expect(filtered.sessions.map(session => session.id)).toEqual(['s1'])
+    expect(filtered.totals.tokens).toBe(15)
+    expect(filtered.sessions[0]?.title).toBe('DeepSeek chat')
   })
 })

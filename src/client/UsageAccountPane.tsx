@@ -4,7 +4,7 @@ import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { BalanceCard } from '../balances.js'
 import type { SubscriptionCard, SubscriptionWindow } from '../subscriptions.js'
-import { formatResetAt, visibleAccountCards } from './usage-view.js'
+import { formatResetAt, visibleAccountCards, visibleBalanceCards } from './usage-view.js'
 import styles from './UsageAccountPane.module.css'
 
 export type UsageAccountPaneProps = {
@@ -58,7 +58,7 @@ function selectedCard<T extends { readonly id: string }>(
 
 /** One visible balance and one visible subscription; switch with pills. */
 export function UsageAccountPane({ balances, subscriptions, t }: UsageAccountPaneProps) {
-  const visibleBalances = visibleAccountCards(balances)
+  const visibleBalances = visibleBalanceCards(balances)
   const visibleSubscriptions = visibleAccountCards(subscriptions)
   const [selectedBalanceId, setSelectedBalanceId] = useState(visibleBalances[0]?.id)
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(visibleSubscriptions[0]?.id)

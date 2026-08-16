@@ -24,7 +24,7 @@ const DEEPSEEK: BalanceCard = {
   limit: 20,
 }
 
-const ZAI_BALANCE: BalanceCard = { id: 'zai', displayName: 'Z.ai', status: 'ok' }
+const ZAI_BALANCE: BalanceCard = { id: 'zai', displayName: 'Z.ai', status: 'ok', remaining: 1 }
 
 const GO: SubscriptionCard = {
   id: 'opencode-go',
@@ -66,6 +66,22 @@ describe('UsageAccountPane', () => {
     expect(document.querySelector('[data-provider="zai"][data-status="ok"]')).toBeTruthy()
     expect(document.querySelector('[data-provider="deepseek"]')).toBeNull()
     expect(screen.queryByText(/Granted 10/)).toBeNull()
+  })
+
+  it('hides an ok balance card that has no remaining or breakdown', () => {
+    render(
+      <UsageAccountPane
+        balances={[
+          { id: 'deepseek', displayName: 'DeepSeek', status: 'ok' },
+          DEEPSEEK,
+        ]}
+        subscriptions={[]}
+        t={t}
+      />,
+    )
+    expect(document.querySelector('[data-provider="deepseek"][data-status="ok"]')).toBeTruthy()
+    expect(screen.queryByRole('group', { name: 'Provider balances' })).toBeNull()
+    expect(screen.getByText(/Granted 10/)).toBeTruthy()
   })
 
   it('hides missing and unsupported cards and lets an error card be selected', () => {
