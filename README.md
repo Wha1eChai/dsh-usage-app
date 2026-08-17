@@ -1,5 +1,7 @@
 # dsh-usage-app
 
+English | [中文](README.zh.md)
+
 Local token heatmap and Host-proxied provider balances as a Webpage App. Package `@dshapps/usage-app`. App ID `dshapps.usage`, `surface: 'panel'`.
 
 The heatmap is local session tokens folded from live sessions plus persisted session logs. The balances are provider accounts queried by the Host. Credentials are resolved on the Host (`credentials.resolve`) and never reach the browser.
@@ -46,3 +48,5 @@ On machines where nested `pnpm run` resolves pnpm `11.0.9` against `packageManag
 ## Family
 
 The platform repository [dsh-webpage](https://github.com/dshapps/dsh-webpage) holds the kernel, the authoring contract, and the docs. Start a new App from [dsh-app-template](https://github.com/dshapps/dsh-app-template). Apps live in their own repositories on purpose.
+
+Licensed under the [MIT License](LICENSE).
